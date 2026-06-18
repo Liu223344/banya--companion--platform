@@ -1,4 +1,6 @@
 const TOKEN_KEY = "banya-auth-token";
+const THEME_KEY = "banya-theme";
+const FONTSIZE_KEY = "banya-fontsize";
 
 let state = {
   user: null,
@@ -13,8 +15,52 @@ let state = {
   reviews: [],
   authMode: "login",
   selectedRequestId: null,
-  apiOnline: true
+  apiOnline: true,
+  loading: false
 };
+
+// 主题管理
+function initTheme() {
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved === "dark" || saved === "light") {
+    document.documentElement.setAttribute("data-theme", saved);
+  }
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute("data-theme");
+  const isDark = current === "dark" ||
+    (!current && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const next = isDark ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem(THEME_KEY, next);
+  toast(next === "dark" ? "已切换到深色模式" : "已切换到浅色模式");
+}
+
+// 字号管理
+const fontSizes = ["normal", "large"];
+let fontSizeIndex = 0;
+
+function initFontSize() {
+  const saved = localStorage.getItem(FONTSIZE_KEY);
+  if (saved === "large") {
+    document.documentElement.setAttribute("data-fontsize", "large");
+    fontSizeIndex = 1;
+  }
+}
+
+function toggleFontSize() {
+  fontSizeIndex = (fontSizeIndex + 1) % fontSizes.length;
+  const size = fontSizes[fontSizeIndex];
+  if (size === "normal") {
+    document.documentElement.removeAttribute("data-fontsize");
+    localStorage.removeItem(FONTSIZE_KEY);
+  } else {
+    document.documentElement.setAttribute("data-fontsize", size);
+    localStorage.setItem(FONTSIZE_KEY, size);
+  }
+  toast(size === "large" ? "已切换到大字号" : "已切换到标准字号");
+}
 
 function $(selector, root = document) {
   return root.querySelector(selector);
@@ -50,12 +96,31 @@ async function api(path, options = {}) {
   return data;
 }
 
-function toast(message) {
+function toast(message, type = "default") {
   const el = $("#toast");
   el.textContent = message;
+  el.className = "toast " + type;
   el.classList.add("show");
   window.clearTimeout(toast.timer);
   toast.timer = window.setTimeout(() => el.classList.remove("show"), 2400);
+}
+
+// 切换视图时加上退场动画
+function switchView(viewName) {
+  const current = $(".view.active");
+  const next = $(`#${viewName}View`);
+  if (!next || current === next) return;
+  if (current) {
+    current.classList.add("leaving");
+    window.setTimeout(() => {
+      current.classList.remove("active", "leaving");
+      next.classList.add("active");
+    }, 180);
+  } else {
+    next.classList.add("active");
+  }
+  state.view = viewName;
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function statusLabel(status) {
@@ -652,8 +717,10 @@ function render() {
   renderAuth();
   $all(".role-btn[data-role]").forEach(btn => btn.classList.toggle("active", btn.dataset.role === state.role));
   $all(".nav-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.view === state.view));
-  $all(".view").forEach(view => view.classList.remove("active"));
-  $(`#${state.view}View`)?.classList.add("active");
+  // 视图切换用 switchView 实现过渡动画
+  if (!$(".view.active")) {
+    $(`#${state.view}View`)?.classList.add("active");
+  }
   renderDashboard();
   renderRequests();
   renderProviders();
@@ -802,7 +869,7 @@ document.addEventListener("click", async event => {
 
   const viewBtn = event.target.closest("[data-view]");
   if (viewBtn) {
-    state.view = viewBtn.dataset.view;
+    switchView(viewBtn.dataset.view);
     render();
   }
 
@@ -900,8 +967,24 @@ document.addEventListener("submit", async event => {
       await refresh();
     }
   } catch (error) {
-    toast(error.message);
+    toast(error.message, "error");
   }
 });
 
+// 主题和字号初始化
+initTheme();
+initFontSize();
 refresh();
+
+// 主题切换
+$("#themeToggle")?.addEventListener("click", toggleTheme);
+
+// 字号切换
+$("#fontSizeBtn")?.addEventListener("click", toggleFontSize);
+
+// 监听系统主题变化（仅在用户未手动设置时）
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  if (!localStorage.getItem(THEME_KEY)) {
+    render();
+  }
+});
