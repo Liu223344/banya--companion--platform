@@ -2077,6 +2077,7 @@ textarea:focus {
   position: relative;
   pointer-events: none;
   color: transparent;
+  opacity: 0.82;
 }
 
 .primary-btn.is-loading::after,
@@ -2098,8 +2099,18 @@ textarea:focus {
 
 .primary-btn.is-loading::after { color: #fff; }
 .ghost-btn.is-loading::after,
-.small-btn.is-loading::loading::after { color: var(--brand); }
+.small-btn.is-loading::after { color: var(--brand); }
 .danger-btn.is-loading::after { color: #fff; }
+
+button:disabled,
+button[aria-busy="true"] {
+  cursor: wait;
+}
+
+button:disabled:not(.is-loading) {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 /* 全屏加载 */
 .page-loading {
@@ -2173,6 +2184,11 @@ textarea:focus {
 .empty.enhanced {
   padding: 48px 24px;
   text-align: center;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(10, 157, 114, 0.08), transparent 42%),
+    rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .empty.enhanced::before {
@@ -2188,6 +2204,9 @@ textarea:focus {
   background-repeat: no-repeat;
   background-position: center;
   background-size: 32px;
+  box-shadow:
+    0 6px 18px rgba(10, 157, 114, 0.12),
+    inset 0 0 0 1px rgba(10, 157, 114, 0.08);
 }
 
 .empty.enhanced h3 {

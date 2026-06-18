@@ -105,6 +105,91 @@ function toast(message, type = "default") {
   toast.timer = window.setTimeout(() => el.classList.remove("show"), 2400);
 }
 
+function emptyState(title, text = "稍后再回来看看，或先完成上方操作。", action = "") {
+  return `
+    <div class="empty enhanced">
+      <h3>${escapeHtml(title)}</h3>
+      <p>${escapeHtml(text)}</p>
+      ${action}
+    </div>
+  `;
+}
+
+function setButtonLoading(button, loading, text = "处理中") {
+  if (!button) return;
+  if (loading) {
+    button.dataset.originalText = button.textContent;
+    button.classList.add("is-loading");
+    button.disabled = true;
+    button.setAttribute("aria-busy", "true");
+    button.setAttribute("aria-label", text);
+  } else {
+    button.classList.remove("is-loading");
+    button.disabled = false;
+    button.removeAttribute("aria-busy");
+    if (button.dataset.originalText) {
+      button.textContent = button.dataset.originalText;
+      delete button.dataset.originalText;
+    }
+  }
+}
+
+function clearFormErrors(form) {
+  $all("[aria-invalid='true']", form).forEach(field => field.removeAttribute("aria-invalid"));
+  $all(".input-error", form).forEach(error => error.remove());
+}
+
+function showFieldError(field, message) {
+  field.setAttribute("aria-invalid", "true");
+  const error = document.createElement("div");
+  error.className = "input-error";
+  error.textContent = message;
+  field.closest(".field")?.appendChild(error);
+}
+
+function validateForm(form) {
+  clearFormErrors(form);
+  const invalid = $all("[required]", form).find(field => !String(field.value || "").trim());
+  if (invalid) {
+    showFieldError(invalid, "请先填写这个必填项");
+    invalid.focus();
+    toast("还有必填项未完成", "warning");
+    return false;
+  }
+  const age = form.querySelector("input[name='age']");
+  if (age && age.value) {
+    const value = Number(age.value);
+    const min = Number(age.min || 0);
+    const max = Number(age.max || Infinity);
+    if (value < min || value > max) {
+      showFieldError(age, `年龄需在 ${min}-${max} 岁之间`);
+      age.focus();
+      toast("请检查年龄范围", "warning");
+      return false;
+    }
+  }
+  return true;
+}
+
+function animateNumber(el, nextValue) {
+  const target = Number(nextValue) || 0;
+  const previous = Number(el.dataset.value || el.textContent || 0);
+  el.dataset.value = String(target);
+  if (previous === target || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    el.textContent = target;
+    return;
+  }
+  const start = performance.now();
+  const duration = 520;
+  const tick = now => {
+    const progress = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(previous + (target - previous) * eased);
+    if (progress < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
 // 切换视图时加上退场动画
 function switchView(viewName) {
   const current = $(".view.active");
@@ -156,14 +241,14 @@ async function refresh() {
 }
 
 function requireLoginText() {
-  return `<div class="empty">请先登录或注册账号，才能使用发布需求、接单、订单和消息功能。</div>`;
+  return emptyState("请先登录或注册", "登录后即可发布需求、接单、管理订单和发送消息。");
 }
 
 function renderStats() {
-  $("#statRequests").textContent = state.requests.length;
-  $("#statProviders").textContent = state.providers.length;
-  $("#statOrders").textContent = state.orders.filter(order => order.status !== "done").length;
-  $("#statMessages").textContent = state.messages.length;
+  animateNumber($("#statRequests"), state.requests.length);
+  animateNumber($("#statProviders"), state.providers.length);
+  animateNumber($("#statOrders"), state.orders.filter(order => order.status !== "done").length);
+  animateNumber($("#statMessages"), state.messages.length);
   $("#todayText").textContent = new Date().toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" });
   const latest = state.requests.find(item => item.status === "open");
   $("#phoneRecommend").textContent = latest
@@ -198,7 +283,7 @@ function renderChildrenPanel() {
             <p>${escapeHtml(child.notes || "暂无注意事项")}</p>
           </article>
         `).join("")}
-      </div>` : `<div class="empty">还没有孩子档案。</div>`}
+      </div>` : emptyState("还没有孩子档案", "先保存一个孩子档案，后续需求和成长记录都会围绕孩子沉淀。")}
     </section>
   `;
 }
@@ -369,7 +454,7 @@ function renderDashboard() {
       </section>
       <section class="panel">
         <div class="panel-head"><div><h2>待匹配需求</h2><p>选择推荐陪伴者并生成订单。</p></div></div>
-        ${openRequests.length ? renderRequestBoard(openRequests, "parent") : `<div class="empty">暂无待匹配需求。</div>`}
+        ${openRequests.length ? renderRequestBoard(openRequests, "parent") : emptyState("暂无待匹配需求", "可以先发布一个陪伴需求，系统会在需求广场中展示。")}
       </section>
     `;
   } else {
@@ -413,7 +498,7 @@ function renderDashboard() {
 }
 
 function renderRequestGrid(requests, withRecommendations) {
-  if (!requests.length) return `<div class="empty">暂无需求。</div>`;
+  if (!requests.length) return emptyState("暂无需求", "换个筛选条件试试，或稍后再查看新的陪伴需求。");
   return `<div class="grid cols-2">${requests.map(request => renderRequestCard(request, withRecommendations)).join("")}</div>`;
 }
 
@@ -429,7 +514,7 @@ function selectRequest(requests) {
 
 function renderRequestBoard(requests, mode) {
   const selected = selectRequest(requests);
-  if (!requests.length) return `<div class="empty">暂无需求。</div>`;
+  if (!requests.length) return emptyState("暂无需求", "当前筛选条件下没有可展示的陪伴需求。");
   return `
     <div class="boss-board">
       <aside class="boss-sidebar">
@@ -491,7 +576,7 @@ function renderRequestListItem(request, selectedId) {
 }
 
 function renderRequestDetail(request, mode) {
-  if (!request) return `<div class="empty">请选择一个需求查看详情。</div>`;
+  if (!request) return emptyState("请选择一个需求", "点击左侧需求卡片后，这里会展示孩子信息、陪伴要求和推荐陪伴者。");
   const recommendations = bestProvidersFor(request);
   return `
     <div class="detail-head">
@@ -546,7 +631,7 @@ function renderRequestDetail(request, mode) {
         </div>
       </div>
     ` : ""}
-    ${request.status !== "open" ? `<div class="empty">这个需求已进入订单流程，可在"我的订单"中查看。</div>` : ""}
+    ${request.status !== "open" ? emptyState("需求已进入订单流程", "可以在“我的订单”中继续查看和管理进度。") : ""}
   `;
 }
 
@@ -632,7 +717,7 @@ function renderOrders() {
   $("#ordersView").innerHTML = `
     <section class="panel">
       <div class="panel-head"><div><h2>订单管理</h2><p>管理当前登录账号相关订单。</p></div></div>
-      ${state.user ? (state.orders.length ? `<div class="grid cols-2">${state.orders.map(renderOrderCard).join("")}</div>` : `<div class="empty">暂无订单。</div>`) : requireLoginText()}
+      ${state.user ? (state.orders.length ? `<div class="grid cols-2">${state.orders.map(renderOrderCard).join("")}</div>` : emptyState("暂无订单", "发布需求并完成匹配后，订单会出现在这里。")) : requireLoginText()}
     </section>
   `;
 }
@@ -705,9 +790,9 @@ function renderMessages() {
               <p>${escapeHtml(message.text)}</p>
               <small>${message.senderRole === "system" ? "系统" : message.senderRole === "parent" ? "家长" : "陪伴者"} · ${new Date(message.createdAt).toLocaleString("zh-CN")}</small>
             </div>
-          `).join("") : `<div class="empty">暂无消息。</div>`}
+          `).join("") : emptyState("暂无消息", "创建订单后，家长和陪伴者可以在这里沟通细节。")}
         </div>
-      ` : `<div class="empty">登录并创建订单后即可发送消息。</div>`}
+      ` : emptyState("还不能发送消息", "登录并创建订单后即可围绕订单发送消息。")}
     </section>
   `;
 }
@@ -914,9 +999,12 @@ document.addEventListener("click", async event => {
   const actionBtn = event.target.closest("[data-action]");
   if (actionBtn) {
     try {
+      setButtonLoading(actionBtn, true);
       await handleAction(actionBtn);
     } catch (error) {
-      toast(error.message);
+      toast(error.message, "error");
+    } finally {
+      setButtonLoading(actionBtn, false);
     }
   }
 });
@@ -931,30 +1019,34 @@ document.addEventListener("input", event => {
 
 document.addEventListener("submit", async event => {
   event.preventDefault();
+  const form = event.target;
+  if (!validateForm(form)) return;
+  const submitButton = form.querySelector("[type='submit']");
+  setButtonLoading(submitButton, true);
   try {
-    if (event.target.id === "loginForm") {
-      const data = Object.fromEntries(new FormData(event.target).entries());
+    if (form.id === "loginForm") {
+      const data = Object.fromEntries(new FormData(form).entries());
       const result = await api("/api/auth/login", { method: "POST", body: data });
       localStorage.setItem(TOKEN_KEY, result.token);
-      toast("登录成功");
+      toast("登录成功", "success");
       await refresh();
     }
-    if (event.target.id === "registerForm") {
-      const data = Object.fromEntries(new FormData(event.target).entries());
+    if (form.id === "registerForm") {
+      const data = Object.fromEntries(new FormData(form).entries());
       const result = await api("/api/auth/register", { method: "POST", body: data });
       localStorage.setItem(TOKEN_KEY, result.token);
-      toast("注册成功");
+      toast("注册成功", "success");
       await refresh();
     }
-    if (event.target.id === "requestForm") {
-      const data = Object.fromEntries(new FormData(event.target).entries());
+    if (form.id === "requestForm") {
+      const data = Object.fromEntries(new FormData(form).entries());
       await api("/api/requests", { method: "POST", body: data });
       state.view = "requests";
-      toast("需求已发布");
+      toast("需求已发布", "success");
       await refresh();
     }
-    if (event.target.id === "childForm") {
-      const data = Object.fromEntries(new FormData(event.target).entries());
+    if (form.id === "childForm") {
+      const data = Object.fromEntries(new FormData(form).entries());
       await api("/api/children", {
         method: "POST",
         body: {
@@ -962,12 +1054,12 @@ document.addEventListener("submit", async event => {
           interests: data.interests.split(/[，,]/).map(item => item.trim()).filter(Boolean)
         }
       });
-      event.target.reset();
-      toast("孩子档案已保存");
+      form.reset();
+      toast("孩子档案已保存", "success");
       await refresh();
     }
-    if (event.target.id === "providerForm") {
-      const data = Object.fromEntries(new FormData(event.target).entries());
+    if (form.id === "providerForm") {
+      const data = Object.fromEntries(new FormData(form).entries());
       await api("/api/providers/me", {
         method: "PUT",
         body: {
@@ -975,37 +1067,39 @@ document.addEventListener("submit", async event => {
           skills: data.skills.split(/[，,]/).map(item => item.trim()).filter(Boolean)
         }
       });
-      toast("陪伴者主页已保存");
+      toast("陪伴者主页已保存", "success");
       await refresh();
     }
-    if (event.target.id === "verificationForm") {
-      const data = Object.fromEntries(new FormData(event.target).entries());
+    if (form.id === "verificationForm") {
+      const data = Object.fromEntries(new FormData(form).entries());
       await api("/api/providers/me/verification", { method: "POST", body: data });
-      event.target.reset();
-      toast("认证申请已提交，等待审核");
+      form.reset();
+      toast("认证申请已提交，等待审核", "success");
       await refresh();
     }
-    if (event.target.dataset.form === "report") {
-      const data = Object.fromEntries(new FormData(event.target).entries());
-      await api(`/api/orders/${event.target.dataset.order}/report`, { method: "POST", body: data });
-      toast("陪伴记录已保存");
+    if (form.dataset.form === "report") {
+      const data = Object.fromEntries(new FormData(form).entries());
+      await api(`/api/orders/${form.dataset.order}/report`, { method: "POST", body: data });
+      toast("陪伴记录已保存", "success");
       await refresh();
     }
-    if (event.target.dataset.form === "review") {
-      const data = Object.fromEntries(new FormData(event.target).entries());
-      await api(`/api/orders/${event.target.dataset.order}/review`, { method: "POST", body: data });
-      toast("评价已提交");
+    if (form.dataset.form === "review") {
+      const data = Object.fromEntries(new FormData(form).entries());
+      await api(`/api/orders/${form.dataset.order}/review`, { method: "POST", body: data });
+      toast("评价已提交", "success");
       await refresh();
     }
-    if (event.target.id === "messageForm") {
-      const data = Object.fromEntries(new FormData(event.target).entries());
+    if (form.id === "messageForm") {
+      const data = Object.fromEntries(new FormData(form).entries());
       await api("/api/messages", { method: "POST", body: data });
-      event.target.reset();
-      toast("消息已发送");
+      form.reset();
+      toast("消息已发送", "success");
       await refresh();
     }
   } catch (error) {
     toast(error.message, "error");
+  } finally {
+    setButtonLoading(submitButton, false);
   }
 });
 
