@@ -90,22 +90,38 @@
       </aside>
     </section>
 
-    <section class="stats-grid" aria-label="平台数据">
-      <article>
-        <strong id="statRequests">0</strong>
-        <span>陪伴需求</span>
+    <section class="stats-grid stats-enhanced" aria-label="平台数据">
+      <article class="stat-card" id="statCardRequests">
+        <div class="stat-icon">📢</div>
+        <div class="stat-body">
+          <strong id="statRequests">0</strong>
+          <span>陪伴需求</span>
+        </div>
+        <div class="stat-trend" id="trendRequests"></div>
       </article>
-      <article>
-        <strong id="statProviders">0</strong>
-        <span>陪伴者</span>
+      <article class="stat-card" id="statCardProviders">
+        <div class="stat-icon">🤝</div>
+        <div class="stat-body">
+          <strong id="statProviders">0</strong>
+          <span>认证陪伴者</span>
+        </div>
+        <div class="stat-trend" id="trendProviders"></div>
       </article>
-      <article>
-        <strong id="statOrders">0</strong>
-        <span>进行中订单</span>
+      <article class="stat-card" id="statCardOrders">
+        <div class="stat-icon">📋</div>
+        <div class="stat-body">
+          <strong id="statOrders">0</strong>
+          <span>进行中订单</span>
+        </div>
+        <div class="stat-trend" id="trendOrders"></div>
       </article>
-      <article>
-        <strong id="statMessages">0</strong>
-        <span>沟通消息</span>
+      <article class="stat-card" id="statCardMessages">
+        <div class="stat-icon">💬</div>
+        <div class="stat-body">
+          <strong id="statMessages">0</strong>
+          <span>沟通消息</span>
+        </div>
+        <div class="stat-trend" id="trendMessages"></div>
       </article>
     </section>
 

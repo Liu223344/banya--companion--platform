@@ -974,6 +974,138 @@ button {
   font-size: 0.9rem;
 }
 
+/* ===== 增强统计卡片（带趋势图表） ===== */
+.stats-enhanced .stat-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  position: relative;
+  overflow: hidden;
+}
+
+.stats-enhanced .stat-icon {
+  font-size: 24px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius);
+  background: var(--brand-soft);
+  flex-shrink: 0;
+}
+
+.stats-enhanced .stat-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.stats-enhanced .stat-body strong {
+  display: block;
+  color: var(--brand-dark);
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 2px;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(135deg, var(--brand-dark), var(--brand) 70%, var(--brand-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.stats-enhanced .stat-body span {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.stats-enhanced .stat-trend {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 60px;
+}
+
+.sparkline {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 32px;
+  width: 56px;
+}
+
+.spark-bar {
+  flex: 1;
+  min-width: 4px;
+  border-radius: 2px 2px 0 0;
+  transition: height 0.4s var(--ease-out);
+  opacity: 0.7;
+}
+
+.spark-bar.brand {
+  background: linear-gradient(180deg, var(--brand), var(--brand-dark));
+}
+
+.spark-bar.brand-2 {
+  background: linear-gradient(180deg, var(--brand-2), #c97a0f);
+}
+
+.stat-card:hover .spark-bar {
+  opacity: 1;
+}
+
+.trend-label {
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.trend-label.up {
+  color: #16a34a;
+}
+
+.trend-label.down {
+  color: var(--danger);
+}
+
+.trend-label.flat {
+  color: var(--muted-2);
+}
+
+:root[data-theme="dark"] .stats-enhanced .stat-icon {
+  background: rgba(45, 212, 154, 0.12);
+}
+:root[data-theme="dark"] .trend-label.up {
+  color: #4ade80;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .stats-enhanced .stat-icon {
+    background: rgba(45, 212, 154, 0.12);
+  }
+  :root:not([data-theme="light"]) .trend-label.up {
+    color: #4ade80;
+  }
+}
+
+@media (max-width: 640px) {
+  .stats-enhanced .stat-card {
+    flex-wrap: wrap;
+  }
+  .stats-enhanced .stat-trend {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .sparkline {
+    flex: 1;
+    height: 24px;
+  }
+}
+
 .muted {
   color: var(--muted);
 }
