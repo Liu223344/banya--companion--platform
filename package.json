@@ -1,0 +1,19 @@
+{
+  "name": "banya-companion-platform",
+  "version": "0.2.0",
+  "description": "伴芽儿童成长陪伴平台 MVP",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "check": "node --check server.js && node --check assets/app.js"
+  },
+  "keywords": [
+    "banya",
+    "childcare",
+    "companion",
+    "mvp"
+  ],
+  "author": "Trae Work",
+  "license": "MIT"
+}

@@ -1,0 +1,26 @@
+{
+  "name": "伴芽 - 儿童成长陪伴平台",
+  "short_name": "伴芽",
+  "description": "连接家长与认证陪伴者，发布陪伴需求、匹配沟通、下单陪伴、记录反馈、评价复购。",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f7f9f8",
+  "theme_color": "#0a9d72",
+  "lang": "zh-CN",
+  "categories": ["education", "lifestyle", "social"],
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%230a9d72'/%3E%3Ctext x='96' y='130' font-size='100' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'%3E芽%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%230a9d72'/%3E%3Ctext x='256' y='350' font-size='280' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'%3E芽%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
