@@ -12,6 +12,7 @@ let state = {
   messages: [],
   reviews: [],
   authMode: "login",
+  selectedRequestId: null,
   apiOnline: true
 };
 
@@ -168,12 +169,18 @@ function renderAuth() {
   root.innerHTML = `
     <div class="auth-card">
       <div class="auth-intro">
-        <h2>先进入伴芽</h2>
-        <p>当前版本已经有后端和数据存储。你可以用试用账号，也可以注册新账号。</p>
-        <p>家长：13800000000 / 123456</p>
-        <p>陪伴者：13900000000 / 123456</p>
+        <span class="auth-badge">伴芽 BANYA</span>
+        <h2>登录后开始匹配陪伴服务</h2>
+        <p>家长像发布职位一样发布陪伴需求，陪伴者像找兼职一样查看并接单。平台会沉淀孩子档案、陪伴记录、评价和认证信息。</p>
+        <div class="auth-demo">
+          <strong>试用账号</strong>
+          <p>家长：13800000000 / 123456</p>
+          <p>陪伴者：13900000000 / 123456</p>
+        </div>
       </div>
-      <div>
+      <div class="auth-form-card">
+        <h3>${state.authMode === "login" ? "欢迎回来" : "创建伴芽账号"}</h3>
+        <p class="muted">${state.authMode === "login" ? "登录后查看需求、订单和消息。" : "选择家长或陪伴者身份，进入对应工作台。"}</p>
         <div class="auth-tabs">
           <button class="auth-tab ${state.authMode === "login" ? "active" : ""}" data-auth-mode="login">登录</button>
           <button class="auth-tab ${state.authMode === "register" ? "active" : ""}" data-auth-mode="register">注册</button>
@@ -297,7 +304,7 @@ function renderDashboard() {
       </section>
       <section class="panel">
         <div class="panel-head"><div><h2>待匹配需求</h2><p>选择推荐陪伴者并生成订单。</p></div></div>
-        ${openRequests.length ? renderRequestGrid(openRequests, true) : `<div class="empty">暂无待匹配需求。</div>`}
+        ${openRequests.length ? renderRequestBoard(openRequests, "parent") : `<div class="empty">暂无待匹配需求。</div>`}
       </section>
     `;
   } else {
@@ -334,7 +341,7 @@ function renderDashboard() {
       </section>
       <section class="panel">
         <div class="panel-head"><div><h2>附近可接需求</h2><p>选择需求后可直接接单。</p></div></div>
-        ${renderRequestGrid(state.requests.filter(item => item.status === "open"), false)}
+        ${renderRequestBoard(state.requests.filter(item => item.status === "open"), "provider")}
       </section>
     `;
   }
@@ -343,6 +350,99 @@ function renderDashboard() {
 function renderRequestGrid(requests, withRecommendations) {
   if (!requests.length) return `<div class="empty">暂无需求。</div>`;
   return `<div class="grid cols-2">${requests.map(request => renderRequestCard(request, withRecommendations)).join("")}</div>`;
+}
+
+function requestMeta(request) {
+  return `${escapeHtml(request.area)}｜${escapeHtml(request.date)} ${escapeHtml(request.time)}`;
+}
+
+function selectRequest(requests) {
+  if (!requests.length) return null;
+  const selected = requests.find(request => request.id === state.selectedRequestId);
+  return selected || requests[0];
+}
+
+function renderRequestBoard(requests, mode) {
+  const selected = selectRequest(requests);
+  if (!requests.length) return `<div class="empty">暂无需求。</div>`;
+  return `
+    <div class="boss-board">
+      <aside class="boss-list">
+        <div class="boss-filter">
+          <input id="requestSearchInput" placeholder="搜索地点、服务、孩子昵称">
+          <button class="small-btn" data-action="clear-request-search">重置</button>
+        </div>
+        <div id="requestListItems" class="request-list-items">
+          ${requests.map(request => renderRequestListItem(request, selected?.id)).join("")}
+        </div>
+      </aside>
+      <section class="boss-detail">
+        ${renderRequestDetail(selected, mode)}
+      </section>
+    </div>
+  `;
+}
+
+function renderRequestListItem(request, selectedId) {
+  return `
+    <button class="request-list-item ${request.id === selectedId ? "active" : ""}" data-action="select-request" data-request="${request.id}">
+      <span class="request-title">${escapeHtml(request.service)}</span>
+      <span class="request-child">${escapeHtml(request.childName)} · ${escapeHtml(request.age)}岁</span>
+      <span class="request-meta">${requestMeta(request)}</span>
+      <span class="request-pay">${escapeHtml(request.budget)} 元/小时</span>
+    </button>
+  `;
+}
+
+function renderRequestDetail(request, mode) {
+  if (!request) return `<div class="empty">请选择一个需求。</div>`;
+  const recommendations = bestProvidersFor(request);
+  return `
+    <div class="detail-head">
+      <div>
+        <span class="status ${request.status}">${statusLabel(request.status)}</span>
+        <h2>${escapeHtml(request.service)}</h2>
+        <p class="muted">${requestMeta(request)}</p>
+      </div>
+      <strong class="detail-pay">${escapeHtml(request.budget)} 元/小时</strong>
+    </div>
+    <div class="detail-section">
+      <h3>孩子信息</h3>
+      <p>${escapeHtml(request.childName)}，${escapeHtml(request.age)}岁</p>
+    </div>
+    <div class="detail-section">
+      <h3>陪伴要求</h3>
+      <p>${escapeHtml(request.note)}</p>
+      ${tagRow([request.service, request.area, request.time])}
+    </div>
+    ${mode === "parent" && request.status === "open" ? `
+      <div class="detail-section">
+        <h3>推荐陪伴者</h3>
+        <div class="recommend-list">
+          ${recommendations.map(provider => `
+            <article class="recommend-card">
+              <div>
+                <h3>${escapeHtml(provider.name)} <span class="muted">· ${escapeHtml(provider.type)}</span></h3>
+                <p class="muted">${escapeHtml(provider.distance)}｜${provider.price} 元/小时｜${provider.verified ? "已认证" : "待认证"}</p>
+                ${tagRow(provider.skills)}
+              </div>
+              <button class="primary-btn" data-action="book" data-request="${request.id}" data-provider="${provider.id}">立即下单</button>
+            </article>
+          `).join("")}
+        </div>
+      </div>
+    ` : ""}
+    ${mode === "provider" && request.status === "open" ? `
+      <div class="detail-section action-strip">
+        <div>
+          <h3>觉得合适？</h3>
+          <p class="muted">接单后会生成订单，家长和陪伴者可以继续在消息页沟通细节。</p>
+        </div>
+        <button class="primary-btn" data-action="accept-request" data-request="${request.id}">我要接单</button>
+      </div>
+    ` : ""}
+    ${request.status !== "open" ? `<div class="empty">这个需求已经进入订单流程。</div>` : ""}
+  `;
 }
 
 function renderRequestCard(request, withRecommendations) {
@@ -379,12 +479,13 @@ function renderRequestCard(request, withRecommendations) {
 }
 
 function renderRequests() {
+  const mode = state.user?.role === "provider" ? "provider" : "parent";
   $("#requestsView").innerHTML = `
     <section class="panel">
       <div class="panel-head">
-        <div><h2>需求广场</h2><p>所有家长发布的陪伴需求。</p></div>
+        <div><h2>${mode === "provider" ? "接单大厅" : "需求广场"}</h2><p>${mode === "provider" ? "像浏览岗位一样查看附近家庭需求，选择合适订单接单。" : "像管理招聘需求一样查看陪伴需求，并选择合适陪伴者。"}</p></div>
       </div>
-      ${renderRequestGrid(state.requests, state.user?.role === "parent")}
+      ${renderRequestBoard(state.requests, mode)}
     </section>
   `;
 }
@@ -540,6 +641,15 @@ async function handleAction(actionBtn) {
     form.note.value = "孩子最近放学后容易刷短视频，希望有人陪他先吃点东西，再完成作业和阅读。";
     toast("已填入示例需求");
   }
+  if (action === "select-request") {
+    state.selectedRequestId = actionBtn.dataset.request;
+    render();
+  }
+  if (action === "clear-request-search") {
+    const input = $("#requestSearchInput");
+    if (input) input.value = "";
+    $all(".request-list-item").forEach(item => item.hidden = false);
+  }
   if (action === "book") {
     await api(`/api/requests/${actionBtn.dataset.request}/book`, {
       method: "POST",
@@ -613,6 +723,14 @@ document.addEventListener("click", async event => {
       toast(error.message);
     }
   }
+});
+
+document.addEventListener("input", event => {
+  if (event.target.id !== "requestSearchInput") return;
+  const keyword = event.target.value.trim().toLowerCase();
+  $all(".request-list-item").forEach(item => {
+    item.hidden = keyword && !item.textContent.toLowerCase().includes(keyword);
+  });
 });
 
 document.addEventListener("submit", async event => {
