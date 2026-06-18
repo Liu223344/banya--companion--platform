@@ -11,6 +11,11 @@
 </head>
 <body>
   <a href="#dashboardView" class="skip-link">跳到主内容</a>
+  <div id="offlineBanner" class="offline-banner">
+    ⚠️ 当前处于离线状态，显示的是本地缓存数据。
+    <button data-action="retry-connection">重新连接</button>
+  </div>
+  <div id="globalLoader" class="global-loader"><div class="spinner"></div></div>
   <header class="topbar">
     <div class="topbar-left">
       <a class="logo" href="#dashboard" aria-label="伴芽首页">

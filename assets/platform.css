@@ -4670,3 +4670,105 @@ html::before {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   }
 }
+
+/* ===== 骨架屏与离线状态 ===== */
+.is-loading-data main {
+  pointer-events: none;
+}
+
+.skeleton-pulse {
+  background: linear-gradient(90deg, var(--card-2) 25%, var(--card) 50%, var(--card-2) 75%);
+  background-size: 200% 100%;
+  animation: skeletonPulse 1.4s ease-in-out infinite;
+  border-radius: var(--radius);
+  color: transparent;
+  user-select: none;
+}
+
+@keyframes skeletonPulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.offline-banner {
+  position: sticky;
+  top: 0;
+  z-index: 99;
+  background: #fef3c7;
+  color: #92400e;
+  border-bottom: 1px solid #f59e0b;
+  padding: 10px 16px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  display: none;
+}
+
+.offline-banner.show {
+  display: block;
+}
+
+.offline-banner button {
+  margin-left: 10px;
+  padding: 4px 10px;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: currentColor;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+:root[data-theme="dark"] .offline-banner {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border-bottom-color: rgba(245, 158, 11, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .offline-banner {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border-bottom-color: rgba(245, 158, 11, 0.3);
+  }
+}
+
+/* 加载动画 */
+.global-loader {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.global-loader.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.global-loader .spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--line);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+:root[data-theme="dark"] .global-loader {
+  background: rgba(13, 24, 20, 0.8);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .global-loader {
+    background: rgba(13, 24, 20, 0.8);
+  }
+}

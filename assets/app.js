@@ -88,17 +88,61 @@ function token() {
   return localStorage.getItem(TOKEN_KEY);
 }
 
+// API 请求缓存，让 GET 请求在离线或网络抖动时仍能显示旧数据
+const API_CACHE_KEY = "banya-api-cache";
+const API_CACHE_TTL = 5 * 60 * 1000; // 5 分钟
+
+function getApiCache(path) {
+  try {
+    const cache = JSON.parse(localStorage.getItem(API_CACHE_KEY) || "{}");
+    const entry = cache[path];
+    if (!entry) return null;
+    if (Date.now() - entry.time > API_CACHE_TTL) {
+      delete cache[path];
+      localStorage.setItem(API_CACHE_KEY, JSON.stringify(cache));
+      return null;
+    }
+    return entry.data;
+  } catch {
+    return null;
+  }
+}
+
+function setApiCache(path, data) {
+  try {
+    const cache = JSON.parse(localStorage.getItem(API_CACHE_KEY) || "{}");
+    cache[path] = { time: Date.now(), data };
+    localStorage.setItem(API_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // 忽略存储空间不足
+  }
+}
+
 async function api(path, options = {}) {
   const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
   if (token()) headers.Authorization = `Bearer ${token()}`;
-  const response = await fetch(path, {
-    ...options,
-    headers,
-    body: options.body ? JSON.stringify(options.body) : undefined
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data.error || "请求失败");
-  return data;
+  try {
+    const response = await fetch(path, {
+      ...options,
+      headers,
+      body: options.body ? JSON.stringify(options.body) : undefined
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || "请求失败");
+    if (!options.method || options.method === "GET") setApiCache(path, data);
+    return data;
+  } catch (error) {
+    // 网络失败时使用本地缓存（只读接口）
+    if (!options.method || options.method === "GET") {
+      const cached = getApiCache(path);
+      if (cached) {
+        console.warn(`api ${path} 失败，使用本地缓存`, error.message);
+        toast("网络连接不稳定，已显示本地缓存数据", "warning");
+        return cached;
+      }
+    }
+    throw error;
+  }
 }
 
 function toast(message, type = "default") {
@@ -299,7 +343,26 @@ function statusLabel(status) {
   }[status] || status;
 }
 
+function showGlobalLoader() {
+  $("#globalLoader")?.classList.add("show");
+}
+
+function hideGlobalLoader() {
+  $("#globalLoader")?.classList.remove("show");
+}
+
+function updateOfflineBanner() {
+  const banner = $("#offlineBanner");
+  if (!banner) return;
+  if (state.apiOnline) {
+    banner.classList.remove("show");
+  } else {
+    banner.classList.add("show");
+  }
+}
+
 async function loadBootstrap() {
+  showGlobalLoader();
   try {
     const data = await api("/api/bootstrap");
     state.apiOnline = true;
@@ -312,8 +375,12 @@ async function loadBootstrap() {
     state.messages = data.messages || [];
     state.reviews = data.reviews || [];
     if (state.user) state.role = state.user.role;
-  } catch {
+  } catch (error) {
     state.apiOnline = false;
+    console.error("bootstrap failed", error);
+  } finally {
+    hideGlobalLoader();
+    updateOfflineBanner();
   }
 }
 
@@ -1952,6 +2019,15 @@ async function handleAction(actionBtn) {
   if (action === "clear-provider-search") {
     state.providerSearch = "";
     render();
+  }
+  if (action === "retry-connection") {
+    toast("正在尝试重新连接...");
+    await refresh();
+    if (state.apiOnline) {
+      toast("已恢复连接", "success");
+    } else {
+      toast("仍然无法连接服务器，请检查网络", "error");
+    }
   }
   if (action === "open-thread") {
     state.selectedThreadId = actionBtn.dataset.thread || null;
