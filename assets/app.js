@@ -21,8 +21,88 @@ let state = {
   providerFilter: "all",
   providerSort: "match",
   providerSearch: "",
-  selectedThreadId: null
+  selectedThreadId: null,
+  favorites: []
 };
+
+// 收藏管理
+const FAVORITES_KEY = "banya-favorites";
+
+function loadFavorites() {
+  try {
+    state.favorites = JSON.parse(localStorage.getItem(FAVORITES_KEY) || "[]");
+  } catch {
+    state.favorites = [];
+  }
+}
+
+function saveFavorites() {
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify(state.favorites));
+}
+
+function isFavorite(providerId) {
+  return state.favorites.includes(providerId);
+}
+
+function toggleFavorite(providerId) {
+  const idx = state.favorites.indexOf(providerId);
+  if (idx >= 0) {
+    state.favorites.splice(idx, 1);
+    toast("已取消收藏");
+  } else {
+    state.favorites.push(providerId);
+    toast("已收藏陪伴者", "success");
+  }
+  saveFavorites();
+}
+
+// 数据导出
+function exportData(type, format) {
+  let data, filename, content;
+  const stamp = new Date().toISOString().slice(0, 10);
+
+  if (type === "orders") {
+    data = state.orders;
+    filename = `伴芽订单_${stamp}.${format}`;
+  } else if (type === "requests") {
+    data = state.requests;
+    filename = `伴芽需求_${stamp}.${format}`;
+  } else {
+    data = { orders: state.orders, requests: state.requests, children: state.children };
+    filename = `伴芽全部数据_${stamp}.${format}`;
+  }
+
+  if (format === "json") {
+    content = JSON.stringify(data, null, 2);
+  } else {
+    // CSV 导出
+    if (!Array.isArray(data)) {
+      toast("CSV 仅支持单类型导出", "warning");
+      return;
+    }
+    if (!data.length) {
+      toast("暂无数据可导出", "warning");
+      return;
+    }
+    const headers = Object.keys(data[0]).filter(k => typeof data[0][k] !== "object");
+    const rows = data.map(item =>
+      headers.map(h => {
+        const val = String(item[h] ?? "").replace(/"/g, '""');
+        return `"${val}"`;
+      }).join(",")
+    );
+    content = "\uFEFF" + headers.join(",") + "\n" + rows.join("\n");
+  }
+
+  const blob = new Blob([content], { type: format === "json" ? "application/json" : "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast(`已导出 ${filename}`, "success");
+}
 
 // 主题管理
 function initTheme() {
@@ -1587,12 +1667,14 @@ function renderProviders() {
     all: enriched.length,
     online: enriched.filter(p => p._status.key === "online").length,
     busy: enriched.filter(p => p._status.key === "busy").length,
-    verified: enriched.filter(p => p.verified).length
+    verified: enriched.filter(p => p.verified).length,
+    favorites: enriched.filter(p => isFavorite(p.id)).length
   };
   let filtered = enriched.filter(p => {
     if (filter === "online") return p._status.key === "online";
     if (filter === "busy") return p._status.key === "busy";
     if (filter === "verified") return p.verified;
+    if (filter === "favorites") return isFavorite(p.id);
     return true;
   });
   if (keyword) {
@@ -1615,6 +1697,7 @@ function renderProviders() {
       <div class="provider-toolbar">
         <div class="tabs order-tabs">
           <button class="tab ${filter === "all" ? "active" : ""}" data-action="filter-providers" data-value="all">全部 ${counts.all}</button>
+          <button class="tab ${filter === "favorites" ? "active" : ""}" data-action="filter-providers" data-value="favorites">⭐ 收藏 ${counts.favorites}</button>
           <button class="tab ${filter === "online" ? "active" : ""}" data-action="filter-providers" data-value="online">在线 ${counts.online}</button>
           <button class="tab ${filter === "busy" ? "active" : ""}" data-action="filter-providers" data-value="busy">忙碌 ${counts.busy}</button>
           <button class="tab ${filter === "verified" ? "active" : ""}" data-action="filter-providers" data-value="verified">认证 ${counts.verified}</button>
@@ -1637,7 +1720,7 @@ function renderProviders() {
         ${filtered.map(provider => {
           const reviewCount = state.reviews.filter(review => review.providerId === provider.id).length;
           return `
-          <article class="item-card provider-card ${state.provider?.id === provider.id ? "highlight" : ""}">
+          <article class="item-card provider-card ${state.provider?.id === provider.id ? "highlight" : ""} ${isFavorite(provider.id) ? "is-favorite" : ""}">
             <div class="provider-head">
               ${avatarFor(provider.name)}
               <div class="provider-meta">
@@ -1645,7 +1728,12 @@ function renderProviders() {
                 <p class="muted">${escapeHtml(provider.type)}｜${escapeHtml(provider.distance)}</p>
                 <p>${ratingStars(provider.rating)}<span class="muted"> · ${reviewCount} 条评价 · ${provider.orders || 0} 单</span></p>
               </div>
-              <span class="status ${provider.verified ? "open" : "matched"}">${provider.verified ? "已认证" : "待认证"}</span>
+              <div class="provider-actions">
+                <button class="favorite-btn ${isFavorite(provider.id) ? "active" : ""}" data-action="toggle-favorite" data-provider="${provider.id}" aria-label="${isFavorite(provider.id) ? "取消收藏" : "收藏陪伴者"}" title="${isFavorite(provider.id) ? "取消收藏" : "收藏"}">
+                  ${isFavorite(provider.id) ? "★" : "☆"}
+                </button>
+                <span class="status ${provider.verified ? "open" : "matched"}">${provider.verified ? "已认证" : "待认证"}</span>
+              </div>
             </div>
             ${tagRow(provider.skills)}
             <p>${escapeHtml(provider.bio)}</p>
@@ -1976,6 +2064,67 @@ function renderProfile() {
         </div>
       </div>
     </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><h2>数据导出</h2><p>导出你的订单、需求数据，支持 JSON 和 CSV 格式。</p></div></div>
+      <div class="export-grid">
+        <div class="export-card">
+          <div class="export-card-head">
+            <span class="export-icon">📋</span>
+            <strong>订单数据</strong>
+          </div>
+          <p class="muted">${state.orders.length} 条订单记录</p>
+          <div class="export-actions">
+            <button class="ghost-btn" data-action="export-data" data-type="orders" data-format="json">JSON</button>
+            <button class="ghost-btn" data-action="export-data" data-type="orders" data-format="csv">CSV</button>
+          </div>
+        </div>
+        <div class="export-card">
+          <div class="export-card-head">
+            <span class="export-icon">📢</span>
+            <strong>需求数据</strong>
+          </div>
+          <p class="muted">${state.requests.length} 条需求记录</p>
+          <div class="export-actions">
+            <button class="ghost-btn" data-action="export-data" data-type="requests" data-format="json">JSON</button>
+            <button class="ghost-btn" data-action="export-data" data-type="requests" data-format="csv">CSV</button>
+          </div>
+        </div>
+        <div class="export-card">
+          <div class="export-card-head">
+            <span class="export-icon">📦</span>
+            <strong>全部数据</strong>
+          </div>
+          <p class="muted">订单 + 需求 + 孩子档案</p>
+          <div class="export-actions">
+            <button class="ghost-btn" data-action="export-data" data-type="all" data-format="json">JSON</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><h2>我的收藏</h2><p>已收藏的陪伴者，方便快速找到心仪人选。</p></div></div>
+      ${state.favorites.length ? `
+        <div class="favorite-list">
+          ${state.favorites.map(fid => {
+            const p = state.providers.find(x => x.id === fid);
+            if (!p) return "";
+            return `
+              <div class="favorite-item">
+                ${avatarFor(p.name)}
+                <div>
+                  <strong>${escapeHtml(p.name)}</strong>
+                  <p class="muted">${escapeHtml(p.type)}｜${escapeHtml(p.distance)}｜${p.price || 0} 元/小时</p>
+                </div>
+                <button class="ghost-btn" data-view="providers">查看</button>
+                <button class="ghost-btn" data-action="toggle-favorite" data-provider="${p.id}">取消收藏</button>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      ` : emptyState("还没有收藏", "在陪伴者列表点击 ☆ 即可收藏心仪的陪伴者。")}
+    </section>
   `;
 }
 
@@ -2201,6 +2350,15 @@ async function handleAction(actionBtn) {
   if (action === "clear-provider-search") {
     state.providerSearch = "";
     render();
+  }
+  if (action === "toggle-favorite") {
+    toggleFavorite(actionBtn.dataset.provider);
+    render();
+    return;
+  }
+  if (action === "export-data") {
+    exportData(actionBtn.dataset.type, actionBtn.dataset.format);
+    return;
   }
   if (action === "fill-time") {
     const input = document.querySelector("#requestForm input[name='time']");
@@ -2601,6 +2759,7 @@ document.addEventListener("submit", async event => {
 // 主题和字号初始化
 initTheme();
 initFontSize();
+loadFavorites();
 refreshReveal = initScrollReveal();
 refresh();
 
