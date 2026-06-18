@@ -184,6 +184,29 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+  <div id="confirmDialog" class="modal-overlay" hidden>
+    <div class="modal-dialog confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <div class="confirm-icon" id="confirmIcon">⚠️</div>
+      <h2 id="confirmTitle">确认操作</h2>
+      <p id="confirmMessage">确定要执行此操作吗？</p>
+      <div class="confirm-actions">
+        <button class="ghost-btn" id="confirmCancel">取消</button>
+        <button class="primary-btn" id="confirmOk">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="orderDrawer" class="drawer" hidden>
+    <div class="drawer-backdrop" data-action="close-drawer"></div>
+    <aside class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+      <div class="drawer-head">
+        <h2 id="drawerTitle">订单详情</h2>
+        <button class="ghost-btn drawer-close" data-action="close-drawer" aria-label="关闭">✕</button>
+      </div>
+      <div class="drawer-body" id="drawerBody"></div>
+    </aside>
+  </div>
+
   <footer class="footer">
     <p>伴芽 MVP 网站版：当前已支持 Node.js 后端、注册登录、JSON 数据库存储、需求发布、接单、订单和消息。后续可继续升级支付、地图、实名认证和 App。</p>
     <a href="banya-companion-platform.html">查看原参赛展示页</a>

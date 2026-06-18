@@ -154,6 +154,129 @@ function toast(message, type = "default") {
   toast.timer = window.setTimeout(() => el.classList.remove("show"), 2400);
 }
 
+// 确认弹窗：返回 Promise<boolean>
+function confirmDialog({ title = "确认操作", message = "确定要执行此操作吗？", icon = "⚠️", confirmText = "确认", cancelText = "取消", danger = false }) {
+  return new Promise(resolve => {
+    const overlay = $("#confirmDialog");
+    if (!overlay) { resolve(true); return; }
+    $("#confirmTitle").textContent = title;
+    $("#confirmMessage").textContent = message;
+    $("#confirmIcon").textContent = icon;
+    const okBtn = $("#confirmOk");
+    const cancelBtn = $("#confirmCancel");
+    okBtn.textContent = confirmText;
+    cancelBtn.textContent = cancelText;
+    okBtn.className = danger ? "danger-btn" : "primary-btn";
+    overlay.hidden = false;
+    overlay.classList.add("show");
+    window.setTimeout(() => okBtn.focus(), 50);
+
+    const cleanup = (result) => {
+      overlay.hidden = true;
+      overlay.classList.remove("show");
+      okBtn.removeEventListener("click", onOk);
+      cancelBtn.removeEventListener("click", onCancel);
+      overlay.removeEventListener("click", onBackdrop);
+      document.removeEventListener("keydown", onKey);
+      resolve(result);
+    };
+    const onOk = () => cleanup(true);
+    const onCancel = () => cleanup(false);
+    const onBackdrop = (e) => { if (e.target === overlay) cleanup(false); };
+    const onKey = (e) => {
+      if (e.key === "Escape") cleanup(false);
+      if (e.key === "Enter") cleanup(true);
+    };
+    okBtn.addEventListener("click", onOk);
+    cancelBtn.addEventListener("click", onCancel);
+    overlay.addEventListener("click", onBackdrop);
+    document.addEventListener("keydown", onKey);
+  });
+}
+
+// 订单详情抽屉
+function openOrderDrawer(orderId) {
+  const order = state.orders.find(o => o.id === orderId);
+  if (!order) return;
+  const drawer = $("#orderDrawer");
+  const body = $("#drawerBody");
+  if (!drawer || !body) return;
+
+  const relatedMessages = state.messages.filter(m => m.orderId === orderId);
+  const relatedRequest = state.requests.find(r => r.id === order.requestId);
+
+  body.innerHTML = `
+    <div class="drawer-section">
+      <span class="status ${order.status}">${statusLabel(order.status)}</span>
+      <h3>${escapeHtml(order.service)}</h3>
+      <p class="muted">${escapeHtml(order.date)} ${escapeHtml(order.time)}｜${escapeHtml(order.area)}</p>
+    </div>
+    ${orderProgress(order)}
+    <div class="drawer-section">
+      <h4>基本信息</h4>
+      <div class="drawer-info-row"><span>孩子</span><strong>${escapeHtml(order.childName)}</strong></div>
+      <div class="drawer-info-row"><span>陪伴者</span><strong>${escapeHtml(order.providerName)}</strong></div>
+      <div class="drawer-info-row"><span>参考价格</span><strong>${escapeHtml(order.price)} 元/小时</strong></div>
+      ${relatedRequest ? `<div class="drawer-info-row"><span>需求说明</span><strong>${escapeHtml(relatedRequest.note || "无")}</strong></div>` : ""}
+    </div>
+    ${order.report ? `
+      <div class="drawer-section">
+        <h4>陪伴记录</h4>
+        <div class="mini-card">
+          <p><b>活动：</b>${escapeHtml(order.report.activities)}</p>
+          <p><b>情绪：</b>${escapeHtml(order.report.mood || "未填写")}</p>
+          <p><b>作业：</b>${escapeHtml(order.report.homework || "未填写")}</p>
+          <p><b>建议：</b>${escapeHtml(order.report.suggestion || "未填写")}</p>
+        </div>
+      </div>
+    ` : ""}
+    ${order.review ? `
+      <div class="drawer-section">
+        <h4>家长评价</h4>
+        <div class="mini-card">
+          <strong>${"★".repeat(Number(order.review.rating || 0))}${"☆".repeat(5 - Number(order.review.rating || 0))}</strong>
+          <p>${escapeHtml(order.review.text || "家长未填写文字评价")}</p>
+        </div>
+      </div>
+    ` : ""}
+    ${relatedMessages.length ? `
+      <div class="drawer-section">
+        <h4>沟通记录（${relatedMessages.length} 条）</h4>
+        <div class="drawer-messages">
+          ${relatedMessages.slice(-8).map(m => `
+            <div class="drawer-msg ${m.senderRole === state.user?.role ? "mine" : ""}">
+              <small>${m.senderRole === "system" ? "系统" : m.senderRole === state.user?.role ? "我" : "对方"}</small>
+              <p>${escapeHtml(m.text)}</p>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    ` : ""}
+    <div class="drawer-actions">
+      <button class="ghost-btn" data-action="close-drawer">关闭</button>
+      <button class="primary-btn" data-view="messages">去沟通</button>
+    </div>
+  `;
+  drawer.hidden = false;
+  drawer.classList.add("open");
+}
+
+function closeOrderDrawer() {
+  const drawer = $("#orderDrawer");
+  if (!drawer) return;
+  drawer.classList.remove("open");
+  window.setTimeout(() => { drawer.hidden = true; }, 250);
+}
+
+// 防抖工具
+function debounce(fn, delay = 300) {
+  let timer;
+  return function(...args) {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
 function emptyState(title, text = "稍后再回来看看，或先完成上方操作。", action = "") {
   return `
     <div class="empty enhanced">
@@ -1633,6 +1756,7 @@ function renderOrderCard(order) {
         </form>
       ` : ""}
       <div class="card-actions">
+        <button class="ghost-btn" data-action="open-order-drawer" data-order="${order.id}">查看详情</button>
         ${order.status === "accepted" ? `<button class="primary-btn" data-action="order-arrived" data-order="${order.id}">开始陪伴</button>` : ""}
         ${order.status === "arrived" ? `<button class="primary-btn" data-action="order-done" data-order="${order.id}">完成订单</button>` : ""}
         <button class="ghost-btn" data-view="messages">去沟通</button>
@@ -2031,6 +2155,14 @@ async function handleAction(actionBtn) {
     return;
   }
   if (action === "logout") {
+    const ok = await confirmDialog({
+      title: "退出登录",
+      message: "退出后需要重新登录才能使用平台功能，确定要退出吗？",
+      icon: "🚪",
+      confirmText: "退出",
+      danger: true
+    });
+    if (!ok) return;
     await api("/api/auth/logout", { method: "POST" }).catch(() => {});
     localStorage.removeItem(TOKEN_KEY);
     state.user = null;
@@ -2142,6 +2274,13 @@ async function handleAction(actionBtn) {
     }
   }
   if (action === "book") {
+    const ok = await confirmDialog({
+      title: "确认下单",
+      message: "下单后将生成订单，陪伴者会收到通知。确定要选择这位陪伴者吗？",
+      icon: "🤝",
+      confirmText: "确认下单"
+    });
+    if (!ok) return;
     await api(`/api/requests/${actionBtn.dataset.request}/book`, {
       method: "POST",
       body: { providerId: actionBtn.dataset.provider }
@@ -2151,6 +2290,13 @@ async function handleAction(actionBtn) {
     await refresh();
   }
   if (action === "accept-request") {
+    const ok = await confirmDialog({
+      title: "确认接单",
+      message: "接单后你需要按时提供陪伴服务，并更新订单状态。确定要接这个需求吗？",
+      icon: "✅",
+      confirmText: "确认接单"
+    });
+    if (!ok) return;
     await api(`/api/requests/${actionBtn.dataset.request}/accept`, { method: "POST" });
     toast("接单成功");
     state.view = "orders";
@@ -2161,13 +2307,36 @@ async function handleAction(actionBtn) {
     toast("已模拟完成认证");
     await refresh();
   }
-  if (action === "order-arrived" || action === "order-done") {
+  if (action === "order-arrived") {
     await api(`/api/orders/${actionBtn.dataset.order}/status`, {
       method: "PATCH",
-      body: { status: action === "order-arrived" ? "arrived" : "done" }
+      body: { status: "arrived" }
     });
-    toast(action === "order-arrived" ? "已开始陪伴" : "订单已完成");
+    toast("已开始陪伴");
     await refresh();
+  }
+  if (action === "order-done") {
+    const ok = await confirmDialog({
+      title: "完成订单",
+      message: "完成后订单状态将变为「已完成」，家长可以对本次服务进行评价。确定陪伴已结束吗？",
+      icon: "📋",
+      confirmText: "确认完成"
+    });
+    if (!ok) return;
+    await api(`/api/orders/${actionBtn.dataset.order}/status`, {
+      method: "PATCH",
+      body: { status: "done" }
+    });
+    toast("订单已完成");
+    await refresh();
+  }
+  if (action === "close-drawer") {
+    closeOrderDrawer();
+    return;
+  }
+  if (action === "open-order-drawer") {
+    openOrderDrawer(actionBtn.dataset.order);
+    return;
   }
 }
 
@@ -2276,8 +2445,13 @@ document.addEventListener("input", event => {
     return;
   }
   if (event.target.id === "providerSearchInput") {
-    state.providerSearch = event.target.value;
-    render();
+    if (!debounce.providerSearch) {
+      debounce.providerSearch = debounce((value) => {
+        state.providerSearch = value;
+        render();
+      }, 250);
+    }
+    debounce.providerSearch(event.target.value);
     return;
   }
   // 字数统计
