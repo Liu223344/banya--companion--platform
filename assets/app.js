@@ -299,6 +299,10 @@ function openOrderDrawer(orderId) {
       <div class="drawer-info-row"><span>参考价格</span><strong>${escapeHtml(order.price)} 元/小时</strong></div>
       ${relatedRequest ? `<div class="drawer-info-row"><span>需求说明</span><strong>${escapeHtml(relatedRequest.note || "无")}</strong></div>` : ""}
     </div>
+    <div class="drawer-section">
+      <h4>订单时间线</h4>
+      ${renderOrderTimeline(order)}
+    </div>
     ${order.report ? `
       <div class="drawer-section">
         <h4>陪伴记录</h4>
@@ -521,6 +525,10 @@ function runActiveCommand(commandId) {
 
 // 切换视图时加上退场动画
 function switchView(viewName) {
+  // 离开消息页时停止轮询
+  if (state.view === "messages" && viewName !== "messages") {
+    stopMessagePolling();
+  }
   const current = $(".view.active");
   const next = $(`#${viewName}View`);
   if (!next || current === next) return;
@@ -1801,6 +1809,77 @@ function orderProgress(order) {
   }).join("")}</div>`;
 }
 
+// 订单时间线：展示完整的状态变更历程
+function renderOrderTimeline(order) {
+  const events = [];
+
+  // 接单事件
+  events.push({
+    icon: "✅",
+    title: "陪伴者接单",
+    time: order.createdAt || order.acceptedAt,
+    desc: `${order.providerName} 接受了需求，订单已创建`
+  });
+
+  // 开始陪伴
+  if (order.status === "arrived" || order.status === "done" || order.report) {
+    events.push({
+      icon: "📍",
+      title: "开始陪伴",
+      time: order.arrivedAt || order.updatedAt,
+      desc: "陪伴者已到达，开始提供陪伴服务"
+    });
+  }
+
+  // 陪伴记录
+  if (order.report) {
+    events.push({
+      icon: "📝",
+      title: "陪伴记录已填写",
+      time: order.reportAt || order.updatedAt,
+      desc: `活动：${order.report.activities || "未填写"}`
+    });
+  }
+
+  // 完成订单
+  if (order.status === "done" || order.review) {
+    events.push({
+      icon: "🎉",
+      title: "陪伴服务完成",
+      time: order.doneAt || order.updatedAt,
+      desc: "订单已完成，等待家长评价"
+    });
+  }
+
+  // 家长评价
+  if (order.review) {
+    events.push({
+      icon: "⭐",
+      title: "家长已评价",
+      time: order.reviewAt || order.updatedAt,
+      desc: `${"★".repeat(Number(order.review.rating || 0))} ${order.review.text || "未填写文字评价"}`
+    });
+  }
+
+  return `
+    <div class="order-timeline">
+      ${events.map((event, i) => `
+        <div class="timeline-item ${i === events.length - 1 ? "last" : ""}">
+          <div class="timeline-marker">
+            <span class="timeline-icon">${event.icon}</span>
+            ${i < events.length - 1 ? '<span class="timeline-line"></span>' : ""}
+          </div>
+          <div class="timeline-content">
+            <strong>${escapeHtml(event.title)}</strong>
+            <p class="muted">${escapeHtml(event.desc)}</p>
+            ${event.time ? `<small class="timeline-time">${new Date(event.time).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}</small>` : ""}
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
 function renderOrderCard(order) {
   return `
     <article class="item-card">
@@ -1917,7 +1996,10 @@ function renderMessages() {
                 <h3>${escapeHtml(state.user.role === "parent" ? active.order.providerName : active.order.childName)}</h3>
                 <p class="muted">${escapeHtml(active.order.service)} · ${escapeHtml(active.order.date)} ${escapeHtml(active.order.time)}</p>
               </div>
-              <span class="status ${active.order.status}">${statusLabel(active.order.status)}</span>
+              <div class="thread-head-right">
+                <span class="polling-indicator">实时</span>
+                <span class="status ${active.order.status}">${statusLabel(active.order.status)}</span>
+              </div>
             </div>
             <div class="message-list thread-messages">
               ${active.messages.length ? active.messages.map(message => `
@@ -1947,6 +2029,46 @@ function renderMessages() {
         $("#messageForm").requestSubmit();
       }
     });
+  }
+
+  // 消息列表自动滚到底部
+  const msgList = $(".thread-messages");
+  if (msgList) {
+    msgList.scrollTop = msgList.scrollHeight;
+  }
+
+  // 启动消息页自动轮询
+  startMessagePolling();
+}
+
+// 消息自动轮询
+let messagePollTimer = null;
+let lastMessageCount = 0;
+
+function startMessagePolling() {
+  stopMessagePolling();
+  lastMessageCount = state.messages.length;
+  messagePollTimer = window.setInterval(async () => {
+    // 只在消息页且在线时轮询
+    if (state.view !== "messages" || !state.apiOnline) return;
+    try {
+      const prevCount = state.messages.length;
+      await loadBootstrap();
+      if (state.messages.length > prevCount) {
+        // 有新消息，静默刷新消息页
+        renderMessages();
+        toast("收到新消息", "default");
+      }
+    } catch {
+      // 静默失败，不打断用户
+    }
+  }, 15000); // 15 秒轮询一次
+}
+
+function stopMessagePolling() {
+  if (messagePollTimer) {
+    window.clearInterval(messagePollTimer);
+    messagePollTimer = null;
   }
 }
 

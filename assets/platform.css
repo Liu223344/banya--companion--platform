@@ -5453,3 +5453,132 @@ html::before {
     padding: 6px 10px;
   }
 }
+
+/* ===== 订单时间线 ===== */
+.order-timeline {
+  position: relative;
+  padding-left: 4px;
+}
+
+.timeline-item {
+  display: flex;
+  gap: 14px;
+  padding-bottom: 20px;
+  position: relative;
+}
+
+.timeline-item.last {
+  padding-bottom: 0;
+}
+
+.timeline-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.timeline-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--brand-soft);
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  border: 2px solid var(--card);
+  box-shadow: 0 0 0 1px var(--brand-soft-2);
+  z-index: 1;
+}
+
+.timeline-item.last .timeline-icon {
+  background: var(--brand);
+  box-shadow: 0 0 0 1px var(--brand), 0 0 12px rgba(10, 157, 114, 0.3);
+}
+
+.timeline-line {
+  width: 2px;
+  flex: 1;
+  background: linear-gradient(180deg, var(--brand-soft-2), var(--line));
+  margin-top: 4px;
+  min-height: 20px;
+}
+
+.timeline-content {
+  flex: 1;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.timeline-content strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.timeline-content p {
+  font-size: 13px;
+  margin: 0 0 4px;
+  line-height: 1.5;
+}
+
+.timeline-time {
+  font-size: 11px;
+  color: var(--muted-2);
+}
+
+/* 暗色主题 */
+:root[data-theme="dark"] .timeline-icon {
+  background: rgba(45, 212, 154, 0.15);
+  box-shadow: 0 0 0 1px rgba(45, 212, 154, 0.2);
+}
+
+:root[data-theme="dark"] .timeline-item.last .timeline-icon {
+  background: var(--brand);
+  box-shadow: 0 0 0 1px var(--brand), 0 0 12px rgba(10, 157, 114, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .timeline-icon {
+    background: rgba(45, 212, 154, 0.15);
+    box-shadow: 0 0 0 1px rgba(45, 212, 154, 0.2);
+  }
+  :root:not([data-theme="light"]) .timeline-item.last .timeline-icon {
+    background: var(--brand);
+    box-shadow: 0 0 0 1px var(--brand), 0 0 12px rgba(10, 157, 114, 0.3);
+  }
+}
+
+/* ===== 消息轮询指示器 ===== */
+.thread-head {
+  position: relative;
+}
+
+.thread-head-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.polling-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--muted-2);
+  margin-left: 8px;
+}
+
+.polling-indicator::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
