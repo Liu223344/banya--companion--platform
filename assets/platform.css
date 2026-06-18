@@ -5582,3 +5582,119 @@ html::before {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
 }
+
+/* ===== 键盘快捷键样式 ===== */
+kbd {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--card-2);
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
+  white-space: nowrap;
+}
+
+.shortcut-help {
+  display: grid;
+  gap: 6px;
+}
+
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.shortcut-row span {
+  color: var(--ink-2);
+}
+
+.shortcut-table {
+  display: grid;
+  gap: 2px;
+}
+
+.shortcut-table-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  transition: background var(--t-fast);
+}
+
+.shortcut-table-row:hover {
+  background: var(--card-2);
+}
+
+.shortcut-table-row span {
+  font-size: 14px;
+  color: var(--ink-2);
+}
+
+.shortcut-table-row kbd {
+  min-width: 28px;
+  text-align: center;
+}
+
+/* 焦点可见样式增强 */
+*:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.view:focus {
+  outline: none;
+}
+
+/* 跳过链接增强 */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 8px;
+  z-index: 999;
+  padding: 8px 16px;
+  background: var(--brand);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 8px;
+}
+
+/* 减少动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+:root[data-theme="dark"] kbd {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--ink);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) kbd {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: var(--ink);
+  }
+}

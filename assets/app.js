@@ -546,6 +546,14 @@ function switchView(viewName) {
   $all(".nav-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.view === viewName));
   $all(".bottom-nav-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.view === viewName));
   window.scrollTo({ top: 0, behavior: "smooth" });
+  // 焦点管理：切换视图后聚焦主内容区，方便屏幕阅读器
+  window.setTimeout(() => {
+    const view = $(`#${viewName}View`);
+    if (view) {
+      view.setAttribute("tabindex", "-1");
+      view.focus({ preventScroll: true });
+    }
+  }, 200);
 }
 
 function statusLabel(status) {
@@ -2261,7 +2269,7 @@ function renderHelp() {
     { q: "如何填写陪伴记录？", a: "陪伴者在订单状态为「陪伴中」或「已完成」时，可以在订单卡片中填写陪伴活动、孩子情绪、作业情况和给家长的建议。这些记录会沉淀到孩子成长摘要中。" },
     { q: "消息如何按订单分组？", a: "消息页采用左右分栏布局，左侧是按订单分组的会话列表，按最近消息时间排序。点击某个会话即可查看该订单的全部消息，支持回车发送。" },
     { q: "如何切换深色模式？", a: "点击顶部工具栏的太阳/月亮图标可以手动切换深浅色主题。如果不手动切换，平台会自动跟随系统的颜色偏好。设置会保存在本地。" },
-    { q: "快捷键有哪些？", a: "Ctrl/Cmd+K 打开命令面板；1-5 数字键快速切换页面；Esc 关闭弹窗。命令面板支持搜索跳转和快捷操作。" },
+    { q: "快捷键有哪些？", a: "1-7 数字键切换页面；Ctrl/Cmd+K 打开命令面板；/ 聚焦搜索框；n 打开通知中心；t 切换主题；? 显示快捷键帮助；Esc 关闭弹窗。在帮助页面可以查看完整列表。" },
     { q: "如何查看通知？", a: "顶部工具栏的铃铛图标显示当前待办数量。点击铃铛可以展开通知面板，查看待办事项并直接跳转处理。" },
     { q: "试用账号是什么？", a: "家长账号：13800000000 / 123456；陪伴者账号：13900000000 / 123456。可以直接登录体验全部功能。" }
   ];
@@ -2332,6 +2340,21 @@ function renderHelp() {
           <span class="rule-num">5</span>
           <div><strong>隐私保护</strong><p>不要在公开区域透露孩子详细住址和联系方式，通过平台沟通。</p></div>
         </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><h2>键盘快捷键</h2><p>随时按 <kbd>?</kbd> 查看完整快捷键列表。</p></div></div>
+      <div class="shortcut-table">
+        <div class="shortcut-table-row"><kbd>1</kbd>-<kbd>7</kbd><span>切换页面（首页/需求/陪伴者/订单/消息/个人/帮助）</span></div>
+        <div class="shortcut-table-row"><kbd>Ctrl</kbd>+<kbd>K</kbd><span>打开命令面板</span></div>
+        <div class="shortcut-table-row"><kbd>/</kbd><span>聚焦全局搜索框</span></div>
+        <div class="shortcut-table-row"><kbd>n</kbd><span>打开通知中心</span></div>
+        <div class="shortcut-table-row"><kbd>t</kbd><span>切换深浅色主题</span></div>
+        <div class="shortcut-table-row"><kbd>?</kbd><span>显示快捷键帮助弹窗</span></div>
+        <div class="shortcut-table-row"><kbd>Esc</kbd><span>关闭弹窗/面板</span></div>
+        <div class="shortcut-table-row"><kbd>Enter</kbd><span>确认操作/发送消息</span></div>
+        <div class="shortcut-table-row"><kbd>Shift</kbd>+<kbd>Enter</kbd><span>消息输入框换行</span></div>
       </div>
     </section>
 
@@ -2780,11 +2803,93 @@ document.addEventListener("keydown", event => {
     return;
   }
   if (event.target.matches("input, textarea, select")) return;
-  const viewShortcuts = { "1": "dashboard", "2": "requests", "3": "providers", "4": "orders", "5": "messages" };
+  const viewShortcuts = {
+    "1": "dashboard",
+    "2": "requests",
+    "3": "providers",
+    "4": "orders",
+    "5": "messages",
+    "6": "profile",
+    "7": "help"
+  };
   if (viewShortcuts[event.key]) {
     switchViewAndRender(viewShortcuts[event.key]);
+    return;
+  }
+  // `/` 聚焦全局搜索
+  if (event.key === "/") {
+    event.preventDefault();
+    const search = $("#globalSearch");
+    if (search) {
+      search.focus();
+      search.select();
+    }
+    return;
+  }
+  // `?` 显示快捷键帮助
+  if (event.key === "?") {
+    event.preventDefault();
+    openShortcutHelp();
+    return;
+  }
+  // `n` 打开通知中心
+  if (event.key === "n") {
+    event.preventDefault();
+    const notifyBtn = $("#notifyBtn");
+    if (notifyBtn) notifyBtn.click();
+    return;
+  }
+  // `t` 切换主题
+  if (event.key === "t") {
+    event.preventDefault();
+    toggleTheme();
+    return;
   }
 });
+
+// 快捷键帮助弹窗
+function openShortcutHelp() {
+  const overlay = $("#confirmDialog");
+  if (!overlay) return;
+  $("#confirmTitle").textContent = "键盘快捷键";
+  $("#confirmIcon").textContent = "⌨️";
+  $("#confirmMessage").innerHTML = `
+    <div class="shortcut-help" style="text-align:left;line-height:2;">
+      <div class="shortcut-row"><kbd>1</kbd>-<kbd>7</kbd> <span>切换页面（首页/需求/陪伴者/订单/消息/个人/帮助）</span></div>
+      <div class="shortcut-row"><kbd>Ctrl</kbd>+<kbd>K</kbd> <span>打开命令面板</span></div>
+      <div class="shortcut-row"><kbd>/</kbd> <span>聚焦搜索框</span></div>
+      <div class="shortcut-row"><kbd>n</kbd> <span>打开通知中心</span></div>
+      <div class="shortcut-row"><kbd>t</kbd> <span>切换深浅色主题</span></div>
+      <div class="shortcut-row"><kbd>?</kbd> <span>显示本帮助</span></div>
+      <div class="shortcut-row"><kbd>Esc</kbd> <span>关闭弹窗/面板</span></div>
+      <div class="shortcut-row"><kbd>Enter</kbd> <span>确认操作/发送消息</span></div>
+      <div class="shortcut-row"><kbd>Shift</kbd>+<kbd>Enter</kbd> <span>消息输入框换行</span></div>
+    </div>
+  `;
+  const okBtn = $("#confirmOk");
+  const cancelBtn = $("#confirmCancel");
+  okBtn.textContent = "知道了";
+  okBtn.className = "primary-btn";
+  cancelBtn.style.display = "none";
+  overlay.hidden = false;
+  overlay.classList.add("show");
+  window.setTimeout(() => okBtn.focus(), 50);
+
+  const cleanup = () => {
+    overlay.hidden = true;
+    overlay.classList.remove("show");
+    cancelBtn.style.display = "";
+    okBtn.removeEventListener("click", onOk);
+    overlay.removeEventListener("click", onBackdrop);
+    document.removeEventListener("keydown", onKey);
+  };
+  const onOk = () => cleanup();
+  const onBackdrop = (e) => { if (e.target === overlay) cleanup(); };
+  const onKey = (e) => { if (e.key === "Escape") cleanup(); };
+  okBtn.addEventListener("click", onOk);
+  overlay.addEventListener("click", onBackdrop);
+  document.addEventListener("keydown", onKey);
+}
 
 document.addEventListener("submit", async event => {
   event.preventDefault();
