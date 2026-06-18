@@ -1,0 +1,305 @@
+{
+  "users": [
+    {
+      "id": "u_parent_demo",
+      "name": "试用家长",
+      "phone": "13800000000",
+      "role": "parent",
+      "area": "绿芽小区",
+      "passwordHash": "da8270acaa01be777455d22a:e6ff90eed12d89e9b699eb39b26d054b6d88cbdb0783f0ce907929e46ec8bfde",
+      "createdAt": "2026-06-18T08:49:41.979Z"
+    },
+    {
+      "id": "u_provider_demo",
+      "name": "林老师",
+      "phone": "13900000000",
+      "role": "provider",
+      "area": "绿芽小区",
+      "passwordHash": "b784377ece8f8533ba206608:248d04938b98c781a51cd270fb87fd70c8a3aabae23e2464ac0026bad3b643df",
+      "createdAt": "2026-06-18T08:49:42.001Z"
+    }
+  ],
+  "providers": [
+    {
+      "id": "provider_demo",
+      "userId": "u_provider_demo",
+      "name": "林老师",
+      "type": "退休小学教师",
+      "distance": "1.2km",
+      "price": 88,
+      "rating": 4.9,
+      "orders": 126,
+      "skills": [
+        "阅读陪伴",
+        "作业引导",
+        "情绪陪聊"
+      ],
+      "bio": "30年小学教学经验，擅长低年级阅读启蒙和习惯培养。",
+      "verified": true,
+      "createdAt": "2026-06-18T08:49:42.001Z",
+      "verificationStatus": "approved"
+    },
+    {
+      "id": "provider_chen",
+      "userId": null,
+      "name": "陈同学",
+      "type": "师范大学生",
+      "distance": "800m",
+      "price": 68,
+      "rating": 4.8,
+      "orders": 54,
+      "skills": [
+        "户外运动",
+        "手工创作",
+        "儿童社交"
+      ],
+      "bio": "学前教育专业，下午没课时间稳定，喜欢带孩子做手工和户外游戏。",
+      "verified": true,
+      "createdAt": "2026-06-18T08:49:42.001Z",
+      "verificationStatus": "approved"
+    },
+    {
+      "id": "provider_wang",
+      "userId": null,
+      "name": "王阿姨",
+      "type": "全职陪伴师",
+      "distance": "1.5km",
+      "price": 95,
+      "rating": 4.95,
+      "orders": 203,
+      "skills": [
+        "阅读陪伴",
+        "作业引导",
+        "情绪陪聊",
+        "烹饪"
+      ],
+      "bio": "5年全职儿童陪伴经验，持有育婴师证，擅长低年级习惯养成和情绪疏导。",
+      "verified": true,
+      "createdAt": "2026-06-18T08:49:42.001Z",
+      "verificationStatus": "approved"
+    },
+    {
+      "id": "provider_zhao",
+      "userId": null,
+      "name": "赵老师",
+      "type": "在职小学教师",
+      "distance": "2.0km",
+      "price": 120,
+      "rating": 5,
+      "orders": 88,
+      "skills": [
+        "作业引导",
+        "阅读陪伴",
+        "数学启蒙"
+      ],
+      "bio": "一线小学数学教师10年，周末可接单，擅长逻辑思维和数学启蒙。",
+      "verified": true,
+      "createdAt": "2026-06-18T08:49:42.001Z",
+      "verificationStatus": "approved"
+    },
+    {
+      "id": "provider_li",
+      "userId": null,
+      "name": "李姐姐",
+      "type": "体育专业学生",
+      "distance": "600m",
+      "price": 60,
+      "rating": 4.7,
+      "orders": 32,
+      "skills": [
+        "户外运动",
+        "游泳",
+        "球类运动"
+      ],
+      "bio": "体育教育专业大三学生，阳光开朗，擅长带孩子做各种户外运动。",
+      "verified": true,
+      "createdAt": "2026-06-18T08:49:42.001Z",
+      "verificationStatus": "approved"
+    },
+    {
+      "id": "provider_zhang",
+      "userId": null,
+      "name": "张奶奶",
+      "type": "退休幼教",
+      "distance": "300m",
+      "price": 50,
+      "rating": 4.85,
+      "orders": 156,
+      "skills": [
+        "阅读陪伴",
+        "手工创作",
+        "情绪陪聊"
+      ],
+      "bio": "退休幼儿园老师，30年幼教经验，耐心细致，同小区可随时照看。",
+      "verified": true,
+      "createdAt": "2026-06-18T08:49:42.001Z",
+      "verificationStatus": "approved"
+    },
+    {
+      "id": "provider_sun",
+      "userId": null,
+      "name": "孙同学",
+      "type": "音乐专业学生",
+      "distance": "1.8km",
+      "price": 75,
+      "rating": 4.6,
+      "orders": 21,
+      "skills": [
+        "周末兴趣",
+        "音乐启蒙",
+        "手工创作"
+      ],
+      "bio": "音乐学院钢琴专业，周末可陪孩子练琴、做音乐游戏和手工。",
+      "verified": false,
+      "createdAt": "2026-06-18T08:49:42.001Z",
+      "verificationStatus": "pending"
+    }
+  ],
+  "requests": [
+    {
+      "id": "request_1781794700820_c66d7aca",
+      "parentId": "u_parent_demo",
+      "parentName": "试用家长",
+      "childName": "小雨",
+      "age": 5,
+      "area": "绿芽小区",
+      "date": "1",
+      "time": "1",
+      "service": "放学接送 + 阅读陪伴",
+      "budget": 80,
+      "note": "1",
+      "status": "open",
+      "createdAt": "2026-06-18T14:58:20.820Z"
+    },
+    {
+      "id": "request_demo",
+      "parentId": "u_parent_demo",
+      "parentName": "王女士",
+      "childName": "小雨",
+      "age": 7,
+      "area": "绿芽小区",
+      "date": "今天",
+      "time": "15:40-18:30",
+      "service": "放学接送 + 阅读陪伴",
+      "budget": 90,
+      "note": "孩子一年级，比较慢热，希望陪伴者有耐心，能引导阅读和完成简单作业。",
+      "status": "open",
+      "createdAt": "2026-06-18T08:49:42.001Z"
+    },
+    {
+      "id": "request_2",
+      "parentId": "u_parent_demo",
+      "parentName": "李先生",
+      "childName": "小杰",
+      "age": 9,
+      "area": "阳光花园",
+      "date": "明天",
+      "time": "19:00-21:00",
+      "service": "作业引导 + 情绪陪聊",
+      "budget": 75,
+      "note": "三年级男孩，数学偏弱，需要耐心引导完成作业，最好能陪聊缓解学习压力。",
+      "status": "open",
+      "createdAt": "2026-06-18T09:00:00.000Z"
+    },
+    {
+      "id": "request_3",
+      "parentId": "u_parent_demo",
+      "parentName": "张女士",
+      "childName": "朵朵",
+      "age": 6,
+      "area": "翠湖天地",
+      "date": "周六",
+      "time": "09:00-12:00",
+      "service": "户外运动 + 儿童社交",
+      "budget": 100,
+      "note": "幼儿园大班，精力旺盛，希望周末有人带孩子去公园运动，结交新朋友。",
+      "status": "open",
+      "createdAt": "2026-06-18T09:30:00.000Z"
+    },
+    {
+      "id": "request_4",
+      "parentId": "u_parent_demo",
+      "parentName": "陈先生",
+      "childName": "小宇",
+      "age": 10,
+      "area": "南山区科技园",
+      "date": "今天",
+      "time": "14:00-17:00",
+      "service": "周末兴趣陪伴",
+      "budget": 120,
+      "note": "四年级，对编程和机器人感兴趣，希望找有理工科背景的陪伴者带他做scratch项目。",
+      "status": "open",
+      "createdAt": "2026-06-18T10:00:00.000Z"
+    },
+    {
+      "id": "request_5",
+      "parentId": "u_parent_demo",
+      "parentName": "刘女士",
+      "childName": "小美",
+      "age": 5,
+      "area": "福田区益田村",
+      "date": "临时",
+      "time": "13:00-15:00",
+      "service": "临时紧急托底",
+      "budget": 80,
+      "note": "临时有急事，需要人帮忙照看两小时，孩子比较乖巧，会自己画画。",
+      "status": "open",
+      "createdAt": "2026-06-18T11:00:00.000Z"
+    },
+    {
+      "id": "request_6",
+      "parentId": "u_parent_demo",
+      "parentName": "赵女士",
+      "childName": "小航",
+      "age": 8,
+      "area": "宝安中心城",
+      "date": "周日",
+      "time": "10:00-12:00",
+      "service": "作业引导 + 情绪陪聊",
+      "budget": 70,
+      "note": "二年级，写作业拖拉，希望陪伴者能帮助建立良好学习习惯，同时陪孩子聊聊天。",
+      "status": "open",
+      "createdAt": "2026-06-18T11:30:00.000Z"
+    },
+    {
+      "id": "request_7",
+      "parentId": "u_parent_demo",
+      "parentName": "孙先生",
+      "childName": "小乐",
+      "age": 11,
+      "area": "绿芽小区",
+      "date": "周五",
+      "time": "16:00-18:00",
+      "service": "放学接送 + 阅读陪伴",
+      "budget": 85,
+      "note": "五年级，放学后需要接送并陪伴阅读一小时，孩子喜欢科普类书籍。",
+      "status": "open",
+      "createdAt": "2026-06-18T12:00:00.000Z"
+    }
+  ],
+  "orders": [],
+  "messages": [],
+  "sessions": [
+    {
+      "token": "5cc587a8a4723cdb03b717b11e4dca5d68f68edc62095290",
+      "userId": "u_provider_demo",
+      "createdAt": "2026-06-18T12:45:54.165Z"
+    }
+  ],
+  "children": [
+    {
+      "id": "child_demo",
+      "parentId": "u_parent_demo",
+      "name": "小雨",
+      "age": 7,
+      "gender": "女",
+      "interests": [
+        "阅读",
+        "画画"
+      ],
+      "notes": "慢热，熟悉后很愿意表达。放学后需要先吃点东西再写作业。",
+      "createdAt": "2026-06-18T08:54:36.343Z"
+    }
+  ],
+  "reviews": []
+}
