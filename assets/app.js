@@ -331,6 +331,9 @@ function switchView(viewName) {
     next.classList.add("active");
   }
   state.view = viewName;
+  // 同步顶部导航和底部导航的 active 状态
+  $all(".nav-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.view === viewName));
+  $all(".bottom-nav-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.view === viewName));
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -1018,12 +1021,24 @@ function renderNotificationCenter() {
 function updateNotifyBadge() {
   const badge = $("#notifyBadge");
   const notifications = getNotifications();
-  if (!badge) return;
-  if (notifications.length > 0) {
-    badge.textContent = notifications.length > 9 ? "9+" : String(notifications.length);
-    badge.hidden = false;
-  } else {
-    badge.hidden = true;
+  if (badge) {
+    if (notifications.length > 0) {
+      badge.textContent = notifications.length > 9 ? "9+" : String(notifications.length);
+      badge.hidden = false;
+    } else {
+      badge.hidden = true;
+    }
+  }
+  // 同步底部导航消息徽标
+  const msgBadge = $("#bottomNavMsgBadge");
+  if (msgBadge) {
+    const unread = notifications.filter(n => n.type === "message").length;
+    if (unread > 0) {
+      msgBadge.textContent = unread > 9 ? "9+" : String(unread);
+      msgBadge.hidden = false;
+    } else {
+      msgBadge.hidden = true;
+    }
   }
 }
 

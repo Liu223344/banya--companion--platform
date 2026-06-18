@@ -6,6 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="description" content="伴芽 - 儿童成长陪伴平台。连接家长与认证陪伴者，发布陪伴需求、匹配沟通、下单陪伴、记录反馈、评价复购。">
   <meta name="theme-color" content="#0a9d72">
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="伴芽">
   <title>伴芽｜儿童成长陪伴平台</title>
   <link rel="stylesheet" href="assets/platform.css">
 </head>
@@ -138,6 +142,30 @@
     <section id="profileView" class="view"></section>
     <section id="helpView" class="view"></section>
   </main>
+
+  <nav class="bottom-nav" aria-label="移动端导航">
+    <button data-view="dashboard" class="bottom-nav-btn active">
+      <span class="bottom-nav-icon">🏠</span>
+      <span class="bottom-nav-label">首页</span>
+    </button>
+    <button data-view="requests" class="bottom-nav-btn">
+      <span class="bottom-nav-icon">📢</span>
+      <span class="bottom-nav-label">需求</span>
+    </button>
+    <button data-view="orders" class="bottom-nav-btn">
+      <span class="bottom-nav-icon">📋</span>
+      <span class="bottom-nav-label">订单</span>
+    </button>
+    <button data-view="messages" class="bottom-nav-btn">
+      <span class="bottom-nav-icon">💬</span>
+      <span class="bottom-nav-label">消息</span>
+      <span class="bottom-nav-badge" id="bottomNavMsgBadge" hidden></span>
+    </button>
+    <button data-view="profile" class="bottom-nav-btn">
+      <span class="bottom-nav-icon">👤</span>
+      <span class="bottom-nav-label">我的</span>
+    </button>
+  </nav>
 
   <div id="commandPalette" class="command-palette" aria-hidden="true">
     <div class="command-backdrop" data-action="close-command"></div>
