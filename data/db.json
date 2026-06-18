@@ -1,0 +1,80 @@
+{
+  "users": [
+    {
+      "id": "u_parent_demo",
+      "name": "试用家长",
+      "phone": "13800000000",
+      "role": "parent",
+      "area": "绿芽小区",
+      "passwordHash": "da8270acaa01be777455d22a:e6ff90eed12d89e9b699eb39b26d054b6d88cbdb0783f0ce907929e46ec8bfde",
+      "createdAt": "2026-06-18T08:49:41.979Z"
+    },
+    {
+      "id": "u_provider_demo",
+      "name": "林老师",
+      "phone": "13900000000",
+      "role": "provider",
+      "area": "绿芽小区",
+      "passwordHash": "b784377ece8f8533ba206608:248d04938b98c781a51cd270fb87fd70c8a3aabae23e2464ac0026bad3b643df",
+      "createdAt": "2026-06-18T08:49:42.001Z"
+    }
+  ],
+  "providers": [
+    {
+      "id": "provider_demo",
+      "userId": "u_provider_demo",
+      "name": "林老师",
+      "type": "退休小学教师",
+      "distance": "1.2km",
+      "price": 88,
+      "rating": 4.9,
+      "orders": 126,
+      "skills": [
+        "阅读陪伴",
+        "作业引导",
+        "情绪陪聊"
+      ],
+      "bio": "30年小学教学经验，擅长低年级阅读启蒙和习惯培养。",
+      "verified": true,
+      "createdAt": "2026-06-18T08:49:42.001Z"
+    },
+    {
+      "id": "provider_chen",
+      "userId": null,
+      "name": "陈同学",
+      "type": "师范大学生",
+      "distance": "800m",
+      "price": 68,
+      "rating": 4.8,
+      "orders": 54,
+      "skills": [
+        "户外运动",
+        "手工创作",
+        "儿童社交"
+      ],
+      "bio": "学前教育专业，下午没课时间稳定，喜欢带孩子做手工和户外游戏。",
+      "verified": true,
+      "createdAt": "2026-06-18T08:49:42.001Z"
+    }
+  ],
+  "requests": [
+    {
+      "id": "request_demo",
+      "parentId": "u_parent_demo",
+      "parentName": "王女士",
+      "childName": "小雨",
+      "age": 7,
+      "area": "绿芽小区",
+      "date": "今天",
+      "time": "15:40-18:30",
+      "service": "放学接送 + 阅读陪伴",
+      "budget": 90,
+      "note": "孩子一年级，比较慢热，希望陪伴者有耐心，能引导阅读和完成简单作业。",
+      "status": "open",
+      "createdAt": "2026-06-18T08:49:42.001Z"
+    }
+  ],
+  "orders": [],
+  "messages": [],
+  "sessions": []
+}
