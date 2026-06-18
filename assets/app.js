@@ -16,7 +16,10 @@ let state = {
   authMode: "login",
   selectedRequestId: null,
   apiOnline: true,
-  loading: false
+  loading: false,
+  orderFilter: "all",
+  providerFilter: "all",
+  selectedThreadId: null
 };
 
 // 主题管理
@@ -755,24 +758,80 @@ function renderRequests() {
   `;
 }
 
+function providerStatus(provider) {
+  // 基于 provider.id 生成稳定的状态：在线 / 忙碌 / 离线
+  const seed = String(provider.id || provider.name || "").split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const states = [
+    { key: "online", label: "在线", cls: "online" },
+    { key: "online", label: "在线", cls: "online" },
+    { key: "busy", label: "忙碌中", cls: "busy" },
+    { key: "offline", label: "离线", cls: "offline" }
+  ];
+  return states[seed % states.length];
+}
+
+function avatarFor(name) {
+  const ch = String(name || "?").trim().charAt(0) || "?";
+  const palette = ["#FFB59A", "#FFD179", "#9DD6E8", "#B5C6FF", "#F2A0C0", "#A6E0B8"];
+  const seed = ch.charCodeAt(0);
+  const bg = palette[seed % palette.length];
+  return `<span class="avatar" style="--avatar-bg:${bg}">${escapeHtml(ch)}</span>`;
+}
+
+function ratingStars(rating) {
+  const num = Number(rating);
+  if (!num) return `<span class="muted">暂无评分</span>`;
+  const full = Math.floor(num);
+  const half = num - full >= 0.5;
+  const empty = 5 - full - (half ? 1 : 0);
+  return `<span class="rating-stars" aria-label="评分 ${num}">${"★".repeat(full)}${half ? "☆" : ""}${"☆".repeat(empty)}<small>${num.toFixed(1)}</small></span>`;
+}
+
 function renderProviders() {
+  const filter = state.providerFilter || "all";
+  const enriched = state.providers.map(p => ({ ...p, _status: providerStatus(p) }));
+  const counts = {
+    all: enriched.length,
+    online: enriched.filter(p => p._status.key === "online").length,
+    busy: enriched.filter(p => p._status.key === "busy").length,
+    verified: enriched.filter(p => p.verified).length
+  };
+  const filtered = enriched.filter(p => {
+    if (filter === "online") return p._status.key === "online";
+    if (filter === "busy") return p._status.key === "busy";
+    if (filter === "verified") return p.verified;
+    return true;
+  });
   $("#providersView").innerHTML = `
     <section class="panel">
       <div class="panel-head"><div><h2>陪伴者列表</h2><p>认证陪伴者、技能标签和服务价格。</p></div></div>
-      <div class="grid cols-3">
-        ${state.providers.map(provider => `
-          <article class="item-card ${state.provider?.id === provider.id ? "highlight" : ""}">
-            <div class="panel-head">
-              <div><h3>${escapeHtml(provider.name)}</h3><p class="muted">${escapeHtml(provider.type)}｜${escapeHtml(provider.distance)}</p></div>
+      <div class="tabs order-tabs">
+        <button class="tab ${filter === "all" ? "active" : ""}" data-action="filter-providers" data-value="all">全部 ${counts.all}</button>
+        <button class="tab ${filter === "online" ? "active" : ""}" data-action="filter-providers" data-value="online">在线 ${counts.online}</button>
+        <button class="tab ${filter === "busy" ? "active" : ""}" data-action="filter-providers" data-value="busy">忙碌 ${counts.busy}</button>
+        <button class="tab ${filter === "verified" ? "active" : ""}" data-action="filter-providers" data-value="verified">认证 ${counts.verified}</button>
+      </div>
+      ${filtered.length ? `<div class="grid cols-3">
+        ${filtered.map(provider => {
+          const reviewCount = state.reviews.filter(review => review.providerId === provider.id).length;
+          return `
+          <article class="item-card provider-card ${state.provider?.id === provider.id ? "highlight" : ""}">
+            <div class="provider-head">
+              ${avatarFor(provider.name)}
+              <div class="provider-meta">
+                <h3>${escapeHtml(provider.name)}<span class="status-pill ${provider._status.cls}"><i class="status-pill-dot"></i>${provider._status.label}</span></h3>
+                <p class="muted">${escapeHtml(provider.type)}｜${escapeHtml(provider.distance)}</p>
+                <p>${ratingStars(provider.rating)}<span class="muted"> · ${reviewCount} 条评价 · ${provider.orders || 0} 单</span></p>
+              </div>
               <span class="status ${provider.verified ? "open" : "matched"}">${provider.verified ? "已认证" : "待认证"}</span>
             </div>
             ${tagRow(provider.skills)}
             <p>${escapeHtml(provider.bio)}</p>
-            <p class="muted">评分：${provider.rating || "暂无"}｜评价：${state.reviews.filter(review => review.providerId === provider.id).length} 条｜服务：${provider.orders || 0} 单｜${provider.price || 0} 元/小时</p>
+            <p class="muted">参考价格：<strong>${provider.price || 0}</strong> 元/小时</p>
             ${renderProviderReviews(provider.id)}
           </article>
-        `).join("")}
-      </div>
+        `; }).join("")}
+      </div>` : emptyState("暂无符合条件的陪伴者", "切换筛选条件试试。")}
     </section>
   `;
 }
@@ -789,12 +848,47 @@ function renderProviderReviews(providerId) {
 }
 
 function renderOrders() {
+  const filter = state.orderFilter || "all";
+  const counts = {
+    all: state.orders.length,
+    active: state.orders.filter(o => o.status === "accepted" || o.status === "arrived").length,
+    done: state.orders.filter(o => o.status === "done" && !o.review).length,
+    reviewed: state.orders.filter(o => o.review).length
+  };
+  const filtered = state.orders.filter(order => {
+    if (filter === "active") return order.status === "accepted" || order.status === "arrived";
+    if (filter === "done") return order.status === "done" && !order.review;
+    if (filter === "reviewed") return Boolean(order.review);
+    return true;
+  });
   $("#ordersView").innerHTML = `
     <section class="panel">
       <div class="panel-head"><div><h2>订单管理</h2><p>管理当前登录账号相关订单。</p></div></div>
-      ${state.user ? (state.orders.length ? `<div class="grid cols-2">${state.orders.map(renderOrderCard).join("")}</div>` : emptyState("暂无订单", "发布需求并完成匹配后，订单会出现在这里。")) : requireLoginText()}
+      ${state.user ? `
+        <div class="tabs order-tabs">
+          <button class="tab ${filter === "all" ? "active" : ""}" data-action="filter-orders" data-value="all">全部 ${counts.all}</button>
+          <button class="tab ${filter === "active" ? "active" : ""}" data-action="filter-orders" data-value="active">进行中 ${counts.active}</button>
+          <button class="tab ${filter === "done" ? "active" : ""}" data-action="filter-orders" data-value="done">待评价 ${counts.done}</button>
+          <button class="tab ${filter === "reviewed" ? "active" : ""}" data-action="filter-orders" data-value="reviewed">已评价 ${counts.reviewed}</button>
+        </div>
+        ${filtered.length ? `<div class="grid cols-2">${filtered.map(renderOrderCard).join("")}</div>` : emptyState("没有匹配的订单", "切换其他筛选条件试试，或先发布陪伴需求。")}
+      ` : requireLoginText()}
     </section>
   `;
+}
+
+function orderProgress(order) {
+  const steps = [
+    { key: "accepted", label: "已接单" },
+    { key: "arrived", label: "陪伴中" },
+    { key: "done", label: "已完成" },
+    { key: "reviewed", label: "已评价" }
+  ];
+  const currentIdx = order.review ? 3 : steps.findIndex(s => s.key === order.status);
+  return `<div class="progress-bar">${steps.map((step, i) => {
+    const cls = i < currentIdx ? "done" : i === currentIdx ? "active" : "";
+    return `<span class="progress-step ${cls}">${step.label}</span>`;
+  }).join("")}</div>`;
 }
 
 function renderOrderCard(order) {
@@ -804,6 +898,7 @@ function renderOrderCard(order) {
         <div><h3>${escapeHtml(order.service)}</h3><p class="muted">${escapeHtml(order.date)} ${escapeHtml(order.time)}｜${escapeHtml(order.area)}</p></div>
         <span class="status ${order.status}">${statusLabel(order.status)}</span>
       </div>
+      ${orderProgress(order)}
       <p><strong>孩子：</strong>${escapeHtml(order.childName)}　<strong>陪伴者：</strong>${escapeHtml(order.providerName)}</p>
       <p class="muted">参考价格：${escapeHtml(order.price)} 元/小时</p>
       ${order.feedback ? `<p><strong>陪伴反馈：</strong>${escapeHtml(order.feedback)}</p>` : ""}
@@ -848,28 +943,100 @@ function renderOrderCard(order) {
 }
 
 function renderMessages() {
-  const options = state.orders.map(order => `<option value="${order.id}">${escapeHtml(order.childName)} - ${escapeHtml(order.providerName)} - ${escapeHtml(order.service)}</option>`).join("");
+  if (!state.user || !state.orders.length) {
+    $("#messagesView").innerHTML = `
+      <section class="panel">
+        <div class="panel-head"><div><h2>订单消息</h2><p>家长和陪伴者围绕订单沟通。</p></div></div>
+        ${emptyState("还不能发送消息", "登录并创建订单后即可围绕订单发送消息。")}
+      </section>
+    `;
+    return;
+  }
+
+  // 按订单聚合会话
+  const threads = state.orders.map(order => {
+    const msgs = state.messages.filter(m => m.orderId === order.id);
+    const last = msgs[msgs.length - 1];
+    return {
+      order,
+      messages: msgs,
+      last,
+      lastTime: last ? new Date(last.createdAt).getTime() : new Date(order.createdAt || 0).getTime(),
+      unread: msgs.filter(m => m.senderRole !== state.user.role && m.senderRole !== "system").length
+    };
+  }).sort((a, b) => b.lastTime - a.lastTime);
+
+  // 默认选中最近一个
+  if (!state.selectedThreadId || !threads.find(t => t.order.id === state.selectedThreadId)) {
+    state.selectedThreadId = threads[0]?.order.id || null;
+  }
+  const active = threads.find(t => t.order.id === state.selectedThreadId);
+
   $("#messagesView").innerHTML = `
     <section class="panel">
-      <div class="panel-head"><div><h2>订单消息</h2><p>家长和陪伴者围绕订单沟通。</p></div></div>
-      ${state.user && state.orders.length ? `
-        <form id="messageForm" class="form-grid">
-          <div class="field full"><label>选择订单</label><select name="orderId">${options}</select></div>
-          <div class="field full"><label>消息内容</label><textarea name="text" required></textarea></div>
-          <div class="field full"><button class="primary-btn" type="submit">发送消息</button></div>
-        </form>
-        <div class="divider"></div>
-        <div class="message-list">
-          ${state.messages.length ? state.messages.map(message => `
-            <div class="message ${message.senderRole === state.user.role ? "mine" : ""}">
-              <p>${escapeHtml(message.text)}</p>
-              <small>${message.senderRole === "system" ? "系统" : message.senderRole === "parent" ? "家长" : "陪伴者"} · ${new Date(message.createdAt).toLocaleString("zh-CN")}</small>
+      <div class="panel-head"><div><h2>订单消息</h2><p>按订单分组的实时沟通，支持快速切换会话。</p></div></div>
+      <div class="thread-layout">
+        <aside class="thread-list" role="tablist" aria-label="会话列表">
+          ${threads.map(t => {
+            const peer = state.user.role === "parent" ? t.order.providerName : t.order.childName;
+            const preview = t.last ? t.last.text : "暂无消息，发送第一条吧";
+            const time = t.last ? new Date(t.last.createdAt).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
+            return `
+              <button class="thread-item ${t.order.id === state.selectedThreadId ? "active" : ""}" data-action="open-thread" data-thread="${t.order.id}" role="tab" aria-selected="${t.order.id === state.selectedThreadId}">
+                ${avatarFor(peer)}
+                <div class="thread-text">
+                  <div class="thread-title">
+                    <strong>${escapeHtml(peer || "未知")}</strong>
+                    <small class="muted">${escapeHtml(time)}</small>
+                  </div>
+                  <div class="thread-preview">
+                    <span class="muted">${escapeHtml(t.order.service)}</span>
+                    <span class="thread-preview-text">${escapeHtml(preview)}</span>
+                  </div>
+                </div>
+                ${t.unread ? `<span class="unread-dot" aria-label="${t.unread} 条未读">${t.unread}</span>` : ""}
+              </button>
+            `;
+          }).join("")}
+        </aside>
+        <div class="thread-detail" role="tabpanel">
+          ${active ? `
+            <div class="thread-head">
+              <div>
+                <h3>${escapeHtml(state.user.role === "parent" ? active.order.providerName : active.order.childName)}</h3>
+                <p class="muted">${escapeHtml(active.order.service)} · ${escapeHtml(active.order.date)} ${escapeHtml(active.order.time)}</p>
+              </div>
+              <span class="status ${active.order.status}">${statusLabel(active.order.status)}</span>
             </div>
-          `).join("") : emptyState("暂无消息", "创建订单后，家长和陪伴者可以在这里沟通细节。")}
+            <div class="message-list thread-messages">
+              ${active.messages.length ? active.messages.map(message => `
+                <div class="message ${message.senderRole === state.user.role ? "mine" : ""} ${message.senderRole === "system" ? "system" : ""}">
+                  <p>${escapeHtml(message.text)}</p>
+                  <small>${message.senderRole === "system" ? "系统" : message.senderRole === "parent" ? "家长" : "陪伴者"} · ${new Date(message.createdAt).toLocaleString("zh-CN")}</small>
+                </div>
+              `).join("") : emptyState("暂无消息", "发送第一条消息开启沟通。")}
+            </div>
+            <form id="messageForm" class="thread-input">
+              <input type="hidden" name="orderId" value="${active.order.id}">
+              <textarea name="text" required placeholder="输入消息内容，回车发送（Shift+回车换行）"></textarea>
+              <button class="primary-btn" type="submit">发送</button>
+            </form>
+          ` : emptyState("还没有会话", "创建订单后即可在这里沟通。")}
         </div>
-      ` : emptyState("还不能发送消息", "登录并创建订单后即可围绕订单发送消息。")}
+      </div>
     </section>
   `;
+
+  // 回车发送
+  const ta = $("#messageForm textarea");
+  if (ta) {
+    ta.addEventListener("keydown", e => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        $("#messageForm").requestSubmit();
+      }
+    });
+  }
 }
 
 let refreshReveal = () => {};
@@ -954,6 +1121,18 @@ async function handleAction(actionBtn) {
     const input = $("#requestSearchInput");
     if (input) input.value = "";
     $all(".request-list-item").forEach(item => item.hidden = false);
+  }
+  if (action === "filter-orders") {
+    state.orderFilter = actionBtn.dataset.value || "all";
+    render();
+  }
+  if (action === "filter-providers") {
+    state.providerFilter = actionBtn.dataset.value || "all";
+    render();
+  }
+  if (action === "open-thread") {
+    state.selectedThreadId = actionBtn.dataset.thread || null;
+    render();
   }
   if (action === "filter-service" || action === "filter-budget" || action === "filter-status") {
     const group = actionBtn.parentElement;
