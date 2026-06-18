@@ -353,6 +353,17 @@ button {
   transform: rotate(15deg);
 }
 
+.command-trigger {
+  width: auto;
+  min-width: 44px;
+  padding: 0 10px;
+  border-radius: var(--radius-full);
+}
+
+.command-trigger:hover {
+  transform: translateY(-1px);
+}
+
 .theme-toggle svg {
   width: 18px;
   height: 18px;
@@ -2038,6 +2049,20 @@ textarea:focus {
     max-width: none;
   }
 
+  .command-palette {
+    padding: 72px 12px 12px;
+  }
+
+  .command-dialog {
+    border-radius: 18px;
+  }
+
+  .command-head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
   .footer {
     flex-direction: column;
     padding: 0 16px 32px;
@@ -2561,6 +2586,154 @@ button:disabled:not(.is-loading) {
   border-top: 1px solid var(--line);
   background: var(--card-2);
   border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+/* ===== 命令面板 ===== */
+.command-palette {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: none;
+  padding: 12vh 20px 20px;
+}
+
+.command-palette.show {
+  display: block;
+  animation: fadeIn 0.18s var(--ease);
+}
+
+.command-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 22, 19, 0.42);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+}
+
+.command-dialog {
+  position: relative;
+  width: min(680px, 100%);
+  margin: 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.78)),
+    radial-gradient(circle at 20% 0%, rgba(10, 157, 114, 0.14), transparent 45%);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  box-shadow:
+    0 30px 80px rgba(16, 42, 33, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  overflow: hidden;
+  animation: modalIn 0.28s var(--ease-out);
+}
+
+:root[data-theme="dark"] .command-dialog {
+  border-color: rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(135deg, rgba(26, 34, 31, 0.92), rgba(33, 42, 38, 0.82)),
+    radial-gradient(circle at 20% 0%, rgba(45, 212, 154, 0.16), transparent 45%);
+}
+
+.command-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.command-search span {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: var(--brand-dark);
+  background: var(--brand-soft);
+  font-weight: 800;
+}
+
+.command-search input {
+  border: 0;
+  box-shadow: none;
+  padding: 8px 0;
+  font-size: 1.05rem;
+  background: transparent;
+}
+
+.command-search input:focus {
+  box-shadow: none;
+  background: transparent;
+}
+
+.command-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 20px 8px;
+}
+
+.command-head h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.command-head small {
+  color: var(--muted);
+}
+
+.command-list {
+  max-height: min(54vh, 420px);
+  overflow: auto;
+  padding: 8px 10px 14px;
+}
+
+.command-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  text-align: left;
+  transition: all var(--t-fast);
+}
+
+.command-item:hover,
+.command-item.active {
+  background: rgba(10, 157, 114, 0.1);
+  border-color: rgba(10, 157, 114, 0.18);
+  transform: translateY(-1px);
+}
+
+.command-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  color: var(--brand-dark);
+  background: var(--brand-soft);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.command-item strong {
+  display: block;
+  color: var(--ink);
+  font-size: 0.96rem;
+}
+
+.command-item small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  line-height: 1.45;
 }
 
 /* ===== 卡片悬浮光效 ===== */

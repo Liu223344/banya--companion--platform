@@ -190,6 +190,81 @@ function animateNumber(el, nextValue) {
   requestAnimationFrame(tick);
 }
 
+const commandItems = [
+  { id: "dashboard", title: "回到首页", desc: "查看数据、孩子档案和发布需求", keywords: "首页 dashboard home", run: () => switchViewAndRender("dashboard") },
+  { id: "requests", title: "打开需求广场", desc: "查看待匹配需求和推荐陪伴者", keywords: "需求 广场 requests", run: () => switchViewAndRender("requests") },
+  { id: "providers", title: "查看陪伴者", desc: "浏览认证陪伴者和服务能力", keywords: "陪伴者 provider 老师", run: () => switchViewAndRender("providers") },
+  { id: "orders", title: "查看我的订单", desc: "管理接单、陪伴中和已完成订单", keywords: "订单 orders", run: () => switchViewAndRender("orders") },
+  { id: "messages", title: "打开消息", desc: "查看订单沟通消息", keywords: "消息 chat message", run: () => switchViewAndRender("messages") },
+  { id: "publish", title: "发布陪伴需求", desc: "跳到首页的需求发布表单", keywords: "发布 需求 create", run: () => handleAction({ dataset: { action: "scroll-create" } }) },
+  { id: "theme", title: "切换深浅色主题", desc: "在浅色和深色模式之间切换", keywords: "主题 深色 浅色 dark light", run: toggleTheme },
+  { id: "font", title: "切换字号大小", desc: "标准字号和大字号之间切换", keywords: "字号 大字 font", run: toggleFontSize }
+];
+
+let activeCommandIndex = 0;
+
+function switchViewAndRender(view) {
+  switchView(view);
+  render();
+}
+
+function filteredCommands() {
+  const keyword = ($("#commandInput")?.value || "").trim().toLowerCase();
+  if (!keyword) return commandItems;
+  return commandItems.filter(item =>
+    `${item.title} ${item.desc} ${item.keywords}`.toLowerCase().includes(keyword)
+  );
+}
+
+function renderCommandList() {
+  const list = $("#commandList");
+  if (!list) return;
+  const items = filteredCommands();
+  if (!items.length) {
+    list.innerHTML = emptyState("没有匹配的操作", "换个关键词试试，例如“订单”“主题”或“发布”。");
+    return;
+  }
+  activeCommandIndex = Math.min(activeCommandIndex, items.length - 1);
+  list.innerHTML = items.map((item, index) => `
+    <button class="command-item ${index === activeCommandIndex ? "active" : ""}" role="option" data-command="${escapeHtml(item.id)}" aria-selected="${index === activeCommandIndex}">
+      <span class="command-icon">${index + 1}</span>
+      <span>
+        <strong>${escapeHtml(item.title)}</strong>
+        <small>${escapeHtml(item.desc)}</small>
+      </span>
+    </button>
+  `).join("");
+}
+
+function openCommandPalette() {
+  const palette = $("#commandPalette");
+  if (!palette) return;
+  palette.classList.add("show");
+  palette.setAttribute("aria-hidden", "false");
+  activeCommandIndex = 0;
+  $("#commandInput").value = "";
+  renderCommandList();
+  window.setTimeout(() => $("#commandInput")?.focus(), 40);
+}
+
+function closeCommandPalette() {
+  const palette = $("#commandPalette");
+  if (!palette) return;
+  palette.classList.remove("show");
+  palette.setAttribute("aria-hidden", "true");
+}
+
+function runActiveCommand(commandId) {
+  const items = filteredCommands();
+  const command = commandId
+    ? commandItems.find(item => item.id === commandId)
+    : items[activeCommandIndex];
+  if (!command) return;
+  closeCommandPalette();
+  command.run();
+  toast(`已执行：${command.title}`, "success");
+}
+
 // 切换视图时加上退场动画
 function switchView(viewName) {
   const current = $(".view.active");
@@ -998,6 +1073,10 @@ document.addEventListener("click", async event => {
 
   const actionBtn = event.target.closest("[data-action]");
   if (actionBtn) {
+    if (actionBtn.dataset.action === "close-command") {
+      closeCommandPalette();
+      return;
+    }
     try {
       setButtonLoading(actionBtn, true);
       await handleAction(actionBtn);
@@ -1007,14 +1086,63 @@ document.addEventListener("click", async event => {
       setButtonLoading(actionBtn, false);
     }
   }
+
+  const commandBtn = event.target.closest("#commandBtn");
+  if (commandBtn) {
+    openCommandPalette();
+    return;
+  }
+
+  const commandItem = event.target.closest("[data-command]");
+  if (commandItem) {
+    runActiveCommand(commandItem.dataset.command);
+  }
 });
 
 document.addEventListener("input", event => {
+  if (event.target.id === "commandInput") {
+    activeCommandIndex = 0;
+    renderCommandList();
+    return;
+  }
   if (event.target.id !== "requestSearchInput") return;
   const keyword = event.target.value.trim().toLowerCase();
   $all(".request-list-item").forEach(item => {
     item.hidden = keyword && !item.textContent.toLowerCase().includes(keyword);
   });
+});
+
+document.addEventListener("keydown", event => {
+  const paletteOpen = $("#commandPalette")?.classList.contains("show");
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+    event.preventDefault();
+    paletteOpen ? closeCommandPalette() : openCommandPalette();
+    return;
+  }
+  if (event.key === "Escape" && paletteOpen) {
+    closeCommandPalette();
+    return;
+  }
+  if (paletteOpen && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+    event.preventDefault();
+    const total = filteredCommands().length;
+    if (!total) return;
+    activeCommandIndex = event.key === "ArrowDown"
+      ? (activeCommandIndex + 1) % total
+      : (activeCommandIndex - 1 + total) % total;
+    renderCommandList();
+    return;
+  }
+  if (paletteOpen && event.key === "Enter") {
+    event.preventDefault();
+    runActiveCommand();
+    return;
+  }
+  if (event.target.matches("input, textarea, select")) return;
+  const viewShortcuts = { "1": "dashboard", "2": "requests", "3": "providers", "4": "orders", "5": "messages" };
+  if (viewShortcuts[event.key]) {
+    switchViewAndRender(viewShortcuts[event.key]);
+  }
 });
 
 document.addEventListener("submit", async event => {

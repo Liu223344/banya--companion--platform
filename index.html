@@ -30,6 +30,9 @@
       <button class="search-btn" data-action="global-search">搜索</button>
     </div>
     <div class="role-switch" aria-label="切换身份">
+      <button id="commandBtn" class="theme-toggle command-trigger" data-tooltip="快捷操作" aria-label="打开快捷操作">
+        <span style="font-size:12px;font-weight:800">⌘K</span>
+      </button>
       <button data-role="parent" class="role-btn active">家长端</button>
       <button data-role="provider" class="role-btn">陪伴者端</button>
       <button id="fontSizeBtn" class="theme-toggle" data-tooltip="字号大小" aria-label="切换字号">
@@ -102,6 +105,21 @@
     <section id="ordersView" class="view"></section>
     <section id="messagesView" class="view"></section>
   </main>
+
+  <div id="commandPalette" class="command-palette" aria-hidden="true">
+    <div class="command-backdrop" data-action="close-command"></div>
+    <section class="command-dialog" role="dialog" aria-modal="true" aria-labelledby="commandTitle">
+      <div class="command-search">
+        <span>⌘</span>
+        <input id="commandInput" placeholder="输入关键词，快速跳转或操作" autocomplete="off">
+      </div>
+      <div class="command-head">
+        <h2 id="commandTitle">快捷操作</h2>
+        <small>Esc 关闭 · Enter 执行</small>
+      </div>
+      <div id="commandList" class="command-list" role="listbox"></div>
+    </section>
+  </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
