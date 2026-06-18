@@ -33,6 +33,14 @@
       <button id="commandBtn" class="theme-toggle command-trigger" data-tooltip="快捷操作" aria-label="打开快捷操作">
         <span style="font-size:12px;font-weight:800">⌘K</span>
       </button>
+      <button id="notifyBtn" class="theme-toggle notify-trigger" data-tooltip="通知中心" aria-label="通知中心" aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <span id="notifyBadge" class="notify-badge" hidden></span>
+      </button>
+      <div id="notifyPanel" class="notify-panel" hidden></div>
       <button data-role="parent" class="role-btn active">家长端</button>
       <button data-role="provider" class="role-btn">陪伴者端</button>
       <button id="fontSizeBtn" class="theme-toggle" data-tooltip="字号大小" aria-label="切换字号">

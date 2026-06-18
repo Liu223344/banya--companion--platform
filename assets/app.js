@@ -789,6 +789,161 @@ function renderGrowthPanel() {
   `;
 }
 
+// 通知中心和新手引导逻辑
+function getNotifications() {
+  const notifications = [];
+  if (!state.user) return notifications;
+
+  if (state.user.role === "parent") {
+    if (state.children.length === 0) {
+      notifications.push({ type: "guide", icon: "👶", title: "建立孩子档案", text: "先添加孩子信息，以便更好地匹配陪伴者。", view: "dashboard" });
+    }
+    const openRequests = state.requests.filter(r => r.status === "open");
+    if (openRequests.length > 0) {
+      notifications.push({ type: "info", icon: "🔔", title: `有 ${openRequests.length} 个待匹配需求`, text: "去查看推荐陪伴者并下单。", view: "requests" });
+    }
+    const needReview = state.orders.filter(o => o.status === "done" && !o.review);
+    if (needReview.length > 0) {
+      notifications.push({ type: "action", icon: "⭐", title: `${needReview.length} 个订单待评价`, text: "完成评价可以帮助其他家长选择。", view: "orders" });
+    }
+    const activeOrders = state.orders.filter(o => o.status === "accepted" || o.status === "arrived");
+    if (activeOrders.length > 0) {
+      notifications.push({ type: "action", icon: "📍", title: `${activeOrders.length} 个订单进行中`, text: "可以查看陪伴进度或更新状态。", view: "orders" });
+    }
+  } else {
+    if (!state.provider?.verified) {
+      notifications.push({ type: "guide", icon: "🛡️", title: "完成认证", text: "完成认证可以增加家长的信任度。", view: "dashboard" });
+    }
+    if (!state.provider?.bio || !state.provider?.skills?.length) {
+      notifications.push({ type: "guide", icon: "📝", title: "完善主页资料", text: "填写简介和技能标签，让家长更容易找到你。", view: "dashboard" });
+    }
+    const openRequests = state.requests.filter(r => r.status === "open");
+    if (openRequests.length > 0) {
+      notifications.push({ type: "info", icon: "🔔", title: `${openRequests.length} 个可接需求`, text: "去接单大厅查看附近家庭需求。", view: "requests" });
+    }
+    const activeOrders = state.orders.filter(o => o.status === "accepted" || o.status === "arrived");
+    if (activeOrders.length > 0) {
+      notifications.push({ type: "action", icon: "📍", title: `${activeOrders.length} 个订单进行中`, text: "记得更新陪伴状态和填写记录。", view: "orders" });
+    }
+  }
+
+  const unreadMessages = state.messages.filter(m => m.senderRole !== state.user.role && m.senderRole !== "system");
+  if (unreadMessages.length > 0) {
+    notifications.push({ type: "message", icon: "💬", title: `${unreadMessages.length} 条未读消息`, text: "去消息页查看对方发来的沟通内容。", view: "messages" });
+  }
+
+  return notifications;
+}
+
+function renderNotificationCenter() {
+  const notifications = getNotifications();
+  if (!notifications.length) return "";
+  return `
+    <section class="panel notification-center">
+      <div class="panel-head">
+        <div>
+          <h2>通知与待办</h2>
+          <p>这里是你需要关注的重要信息和操作引导。</p>
+        </div>
+        <span class="notify-count">${notifications.length}</span>
+      </div>
+      <div class="notification-list">
+        ${notifications.map(n => `
+          <article class="notification-item ${n.type}">
+            <span class="notification-icon">${n.icon}</span>
+            <div class="notification-content">
+              <strong>${escapeHtml(n.title)}</strong>
+              <p>${escapeHtml(n.text)}</p>
+            </div>
+            ${n.view ? `<button class="ghost-btn" data-view="${escapeHtml(n.view)}">去处理</button>` : ""}
+          </article>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
+// 更新 topbar 铃铛徽标
+function updateNotifyBadge() {
+  const badge = $("#notifyBadge");
+  const notifications = getNotifications();
+  if (!badge) return;
+  if (notifications.length > 0) {
+    badge.textContent = notifications.length > 9 ? "9+" : String(notifications.length);
+    badge.hidden = false;
+  } else {
+    badge.hidden = true;
+  }
+}
+
+// 渲染 topbar 下拉通知面板
+function renderNotifyPanel() {
+  const panel = $("#notifyPanel");
+  if (!panel) return;
+  const notifications = getNotifications();
+  if (!notifications.length) {
+    panel.innerHTML = `<div class="notify-empty"><p>🎉 暂无待办，一切就绪</p></div>`;
+    return;
+  }
+  panel.innerHTML = `
+    <div class="notify-panel-head">
+      <strong>通知与待办</strong>
+      <small>${notifications.length} 条</small>
+    </div>
+    <div class="notify-panel-list">
+      ${notifications.map(n => `
+        <button class="notify-panel-item ${n.type}" data-view="${escapeHtml(n.view || "dashboard")}">
+          <span class="notification-icon">${n.icon}</span>
+          <div>
+            <strong>${escapeHtml(n.title)}</strong>
+            <p>${escapeHtml(n.text)}</p>
+          </div>
+        </button>
+      `).join("")}
+    </div>
+  `;
+}
+
+// 新手引导横幅
+function renderOnboardingBanner() {
+  if (!state.user) return "";
+  const key = `banya-onboarding-${state.user.id}`;
+  if (localStorage.getItem(key)) return "";
+  const steps = state.user.role === "parent" ? [
+    { num: 1, title: "建立孩子档案", text: "记录年龄、兴趣和注意事项" },
+    { num: 2, title: "发布陪伴需求", text: "描述时间、地点和服务类型" },
+    { num: 3, title: "选择推荐陪伴者", text: "查看匹配分并下单" },
+    { num: 4, title: "沟通与评价", text: "订单内沟通，完成后评价" }
+  ] : [
+    { num: 1, title: "完善主页资料", text: "填写简介、技能和时薪" },
+    { num: 2, title: "完成认证", text: "提升可信度" },
+    { num: 3, title: "浏览接单大厅", text: "查看附近需求并接单" },
+    { num: 4, title: "陪伴与记录", text: "更新状态，填写陪伴记录" }
+  ];
+  return `
+    <section class="panel onboarding-banner">
+      <div class="onboarding-head">
+        <div>
+          <h2>👋 欢迎使用伴芽</h2>
+          <p>按以下步骤快速开始${state.user.role === "parent" ? "为孩子找到陪伴者" : "接单陪伴"}。</p>
+        </div>
+        <button class="ghost-btn" data-action="dismiss-onboarding">我知道了</button>
+      </div>
+      <div class="onboarding-steps">
+        ${steps.map(step => `
+          <div class="onboarding-step">
+            <span class="onboarding-num">${step.num}</span>
+            <div>
+              <strong>${escapeHtml(step.title)}</strong>
+              <p class="muted">${escapeHtml(step.text)}</p>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
 function renderDashboard() {
   const root = $("#dashboardView");
   if (!state.user) {
@@ -798,6 +953,8 @@ function renderDashboard() {
   if (state.user.role === "parent") {
     const openRequests = state.requests.filter(item => item.status === "open");
     root.innerHTML = `
+      ${renderOnboardingBanner()}
+      ${renderNotificationCenter()}
       ${renderQualityPanel()}
       ${renderActivityPanel()}
       ${renderSafetyPanel()}
@@ -845,6 +1002,8 @@ function renderDashboard() {
     `;
   } else {
     root.innerHTML = `
+      ${renderOnboardingBanner()}
+      ${renderNotificationCenter()}
       ${renderQualityPanel()}
       ${renderActivityPanel()}
       ${renderSafetyPanel()}
@@ -1411,6 +1570,7 @@ function render() {
   renderProviders();
   renderOrders();
   renderMessages();
+  updateNotifyBadge();
   window.requestAnimationFrame(() => refreshReveal());
 }
 
@@ -1437,6 +1597,12 @@ async function handleAction(actionBtn) {
   if (action === "select-request") {
     state.selectedRequestId = actionBtn.dataset.request;
     render();
+  }
+  if (action === "dismiss-onboarding") {
+    if (state.user) localStorage.setItem(`banya-onboarding-${state.user.id}`, "1");
+    render();
+    toast("引导已关闭，随时可以开始");
+    return;
   }
   if (action === "clear-request-search") {
     const input = $("#requestSearchInput");
@@ -1590,6 +1756,34 @@ document.addEventListener("click", async event => {
   const commandBtn = event.target.closest("#commandBtn");
   if (commandBtn) {
     openCommandPalette();
+    return;
+  }
+
+  const notifyBtn = event.target.closest("#notifyBtn");
+  if (notifyBtn) {
+    const panel = $("#notifyPanel");
+    const isOpen = !panel.hidden;
+    if (isOpen) {
+      panel.hidden = true;
+      notifyBtn.setAttribute("aria-expanded", "false");
+    } else {
+      renderNotifyPanel();
+      panel.hidden = false;
+      notifyBtn.setAttribute("aria-expanded", "true");
+    }
+    return;
+  }
+
+  // 点击通知面板里的项目，跳转对应视图并关闭面板
+  const notifyItem = event.target.closest(".notify-panel-item");
+  if (notifyItem) {
+    const view = notifyItem.dataset.view;
+    $("#notifyPanel").hidden = true;
+    $("#notifyBtn")?.setAttribute("aria-expanded", "false");
+    if (view) {
+      switchView(view);
+      render();
+    }
     return;
   }
 
