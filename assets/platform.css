@@ -4128,3 +4128,289 @@ html::before {
     background: rgba(26, 34, 31, 0.5);
   }
 }
+
+/* ===== 个人中心 ===== */
+.profile-hero {
+  background: linear-gradient(135deg, var(--brand-soft), var(--card));
+}
+
+.profile-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.profile-head .avatar {
+  width: 64px;
+  height: 64px;
+  font-size: 26px;
+}
+
+.profile-head h2 {
+  margin: 0 0 4px;
+}
+
+.profile-head > div:nth-child(2) {
+  flex: 1;
+}
+
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.profile-stats > div {
+  text-align: center;
+  padding: 16px 12px;
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+
+.profile-stats strong {
+  display: block;
+  font-size: 1.6rem;
+  color: var(--brand-dark);
+  margin-bottom: 4px;
+}
+
+.profile-stats span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.pref-list {
+  display: grid;
+  gap: 10px;
+}
+
+.pref-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--card-2);
+}
+
+.pref-item strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.pref-item p {
+  font-size: 13px;
+  margin: 0;
+}
+
+/* ===== 帮助中心 ===== */
+.help-guides {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.help-guide-card {
+  text-align: center;
+  padding: 18px 12px;
+  border-radius: var(--radius);
+  background: var(--card-2);
+  border: 1px solid var(--line);
+  transition: all var(--t-fast);
+}
+
+.help-guide-card:hover {
+  border-color: var(--brand-soft-2);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.help-guide-icon {
+  font-size: 28px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.help-guide-card strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.help-guide-card p {
+  font-size: 12px;
+  margin: 0;
+}
+
+.faq-list {
+  display: grid;
+  gap: 8px;
+}
+
+.faq-item {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--card-2);
+  overflow: hidden;
+  transition: border-color var(--t-fast);
+}
+
+.faq-item[open] {
+  border-color: var(--brand-soft-2);
+}
+
+.faq-item summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  list-style: none;
+  user-select: none;
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-arrow {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg);
+  transition: transform var(--t-fast);
+  flex-shrink: 0;
+}
+
+.faq-item[open] .faq-arrow {
+  transform: rotate(-135deg);
+}
+
+.faq-answer {
+  padding: 0 16px 14px;
+}
+
+.faq-answer p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink-2);
+  line-height: 1.7;
+}
+
+.rules-list {
+  display: grid;
+  gap: 10px;
+}
+
+.rule-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--card-2);
+}
+
+.rule-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--brand);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.rule-item strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.rule-item p {
+  font-size: 13px;
+  margin: 0;
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.contact-card {
+  text-align: center;
+  padding: 24px 16px;
+  border-radius: var(--radius);
+  background: var(--card-2);
+  border: 1px solid var(--line);
+}
+
+.contact-icon {
+  font-size: 32px;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.contact-card strong {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.contact-card p {
+  font-size: 13px;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .profile-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .help-guides {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .contact-grid {
+    grid-template-columns: 1fr;
+  }
+  .pref-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .help-guides {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* 暗色主题适配 */
+:root[data-theme="dark"] .profile-hero {
+  background: linear-gradient(135deg, rgba(26, 58, 46, 0.4), var(--card));
+}
+:root[data-theme="dark"] .faq-item {
+  background: rgba(26, 34, 31, 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .profile-hero {
+    background: linear-gradient(135deg, rgba(26, 58, 46, 0.4), var(--card));
+  }
+  :root:not([data-theme="light"]) .faq-item {
+    background: rgba(26, 34, 31, 0.5);
+  }
+}

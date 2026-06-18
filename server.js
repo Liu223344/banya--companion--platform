@@ -321,6 +321,17 @@ async function handleApi(req, res, pathname) {
     return send(res, 200, { ok: true });
   }
 
+  if (method === "PUT" && pathname === "/api/auth/profile") {
+    const user = requireUser(req, res, db);
+    if (!user) return;
+    const body = await parseBody(req);
+    if (body.name) user.name = String(body.name).trim();
+    if (body.phone) user.phone = String(body.phone).trim();
+    if (body.area) user.area = String(body.area).trim();
+    writeDb(db);
+    return send(res, 200, { user: publicUser(user) });
+  }
+
   if (method === "GET" && pathname === "/api/me") {
     const user = requireUser(req, res, db);
     if (!user) return;

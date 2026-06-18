@@ -199,6 +199,8 @@ const commandItems = [
   { id: "providers", title: "查看陪伴者", desc: "浏览认证陪伴者和服务能力", keywords: "陪伴者 provider 老师", run: () => switchViewAndRender("providers") },
   { id: "orders", title: "查看我的订单", desc: "管理接单、陪伴中和已完成订单", keywords: "订单 orders", run: () => switchViewAndRender("orders") },
   { id: "messages", title: "打开消息", desc: "查看订单沟通消息", keywords: "消息 chat message", run: () => switchViewAndRender("messages") },
+  { id: "profile", title: "个人中心", desc: "管理账号信息和偏好设置", keywords: "个人 中心 profile 设置 账号", run: () => switchViewAndRender("profile") },
+  { id: "help", title: "帮助中心", desc: "查看使用指南和常见问题", keywords: "帮助 help faq 指南 问题", run: () => switchViewAndRender("help") },
   { id: "publish", title: "发布陪伴需求", desc: "跳到首页的需求发布表单", keywords: "发布 需求 create", run: () => handleAction({ dataset: { action: "scroll-create" } }) },
   { id: "theme", title: "切换深浅色主题", desc: "在浅色和深色模式之间切换", keywords: "主题 深色 浅色 dark light", run: toggleTheme },
   { id: "font", title: "切换字号大小", desc: "标准字号和大字号之间切换", keywords: "字号 大字 font", run: toggleFontSize }
@@ -1556,6 +1558,194 @@ function initScrollReveal() {
   };
 }
 
+// ===== 个人中心 =====
+function renderProfile() {
+  const root = $("#profileView");
+  if (!state.user) {
+    root.innerHTML = `<section class="panel">${requireLoginText()}</section>`;
+    return;
+  }
+  const u = state.user;
+  const myOrders = state.orders.filter(o => {
+    if (u.role === "parent") return true;
+    return o.providerId === state.provider?.id;
+  });
+  const myMessages = state.messages.filter(m => m.senderRole === u.role).length;
+  const myReviews = state.reviews.length;
+  const themeCurrent = document.documentElement.getAttribute("data-theme") || "auto";
+  const fontCurrent = document.documentElement.getAttribute("data-fontsize") || "normal";
+
+  root.innerHTML = `
+    <section class="panel profile-hero">
+      <div class="profile-head">
+        ${avatarFor(u.name)}
+        <div>
+          <h2>${escapeHtml(u.name)}</h2>
+          <p class="muted">${u.role === "parent" ? "家长" : "陪伴者"} · ${escapeHtml(u.phone || "未绑定手机")} · ${escapeHtml(u.area || "未设置区域")}</p>
+        </div>
+        <span class="status ${u.role === "parent" ? "open" : "matched"}">${u.role === "parent" ? "家长账号" : "陪伴者账号"}</span>
+      </div>
+      <div class="profile-stats">
+        <div><strong>${myOrders.length}</strong><span>订单总数</span></div>
+        <div><strong>${myMessages}</strong><span>发送消息</span></div>
+        <div><strong>${myReviews}</strong><span>${u.role === "parent" ? "已写评价" : "收到评价"}</span></div>
+        <div><strong>${state.children.length}</strong><span>${u.role === "parent" ? "孩子档案" : "服务区域"}</span></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><h2>账号信息</h2><p>修改你的基本信息，保存后立即生效。</p></div></div>
+      <form id="profileForm" class="form-grid">
+        <div class="field"><label>姓名/昵称</label><input name="name" value="${escapeHtml(u.name || "")}" required></div>
+        <div class="field"><label>手机号</label><input name="phone" value="${escapeHtml(u.phone || "")}" required></div>
+        <div class="field"><label>所在区域</label><input name="area" value="${escapeHtml(u.area || "")}" placeholder="例如：绿芽小区"></div>
+        <div class="field"><label>身份</label><input value="${u.role === "parent" ? "家长" : "陪伴者"}" disabled></div>
+        <div class="field full"><button class="primary-btn" type="submit">保存修改</button></div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><h2>偏好设置</h2><p>主题和字号会保存在本地，下次打开自动恢复。</p></div></div>
+      <div class="pref-list">
+        <div class="pref-item">
+          <div><strong>显示主题</strong><p class="muted">当前：${themeCurrent === "dark" ? "深色" : themeCurrent === "light" ? "浅色" : "跟随系统"}</p></div>
+          <button class="ghost-btn" data-action="toggle-theme-pref">切换主题</button>
+        </div>
+        <div class="pref-item">
+          <div><strong>字号大小</strong><p class="muted">当前：${fontCurrent === "large" ? "大字号" : "标准字号"}</p></div>
+          <button class="ghost-btn" data-action="toggle-font-pref">切换字号</button>
+        </div>
+        <div class="pref-item">
+          <div><strong>新手引导</strong><p class="muted">重新显示首页的新手引导横幅</p></div>
+          <button class="ghost-btn" data-action="reset-onboarding">重新显示</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><h2>账号操作</h2><p>退出登录或清除本地缓存。</p></div></div>
+      <div class="pref-list">
+        <div class="pref-item">
+          <div><strong>退出登录</strong><p class="muted">退出当前账号，需要重新登录才能使用平台功能。</p></div>
+          <button class="ghost-btn" data-action="logout">退出登录</button>
+        </div>
+        <div class="pref-item">
+          <div><strong>清除本地缓存</strong><p class="muted">清除主题、字号和引导记录，不影响账号数据。</p></div>
+          <button class="ghost-btn" data-action="clear-cache">清除缓存</button>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+// ===== 帮助中心 =====
+function renderHelp() {
+  const root = $("#helpView");
+  const faqs = [
+    { q: "如何发布陪伴需求？", a: "登录家长账号后，在首页点击「发布陪伴需求」，填写孩子昵称、年龄、服务地点、日期时间、陪伴类型和预算，提交后需求会进入需求广场，等待陪伴者接单。" },
+    { q: "如何选择推荐陪伴者？", a: "在需求详情页，系统会根据技能匹配、认证状态、评分、价格和距离生成推荐列表。每个陪伴者会显示匹配分和匹配理由，点击「立即下单」即可创建订单。" },
+    { q: "陪伴者如何接单？", a: "登录陪伴者账号后，在「需求广场」查看附近需求。选择合适的需求后点击「我要接单」，订单会自动生成，双方可以在消息页沟通细节。" },
+    { q: "订单状态有哪些？", a: "订单状态包括：已接单 → 陪伴中 → 已完成 → 已评价。陪伴者可以在「开始陪伴」和「完成订单」之间更新状态，家长可以在完成后提交评价。" },
+    { q: "如何填写陪伴记录？", a: "陪伴者在订单状态为「陪伴中」或「已完成」时，可以在订单卡片中填写陪伴活动、孩子情绪、作业情况和给家长的建议。这些记录会沉淀到孩子成长摘要中。" },
+    { q: "消息如何按订单分组？", a: "消息页采用左右分栏布局，左侧是按订单分组的会话列表，按最近消息时间排序。点击某个会话即可查看该订单的全部消息，支持回车发送。" },
+    { q: "如何切换深色模式？", a: "点击顶部工具栏的太阳/月亮图标可以手动切换深浅色主题。如果不手动切换，平台会自动跟随系统的颜色偏好。设置会保存在本地。" },
+    { q: "快捷键有哪些？", a: "Ctrl/Cmd+K 打开命令面板；1-5 数字键快速切换页面；Esc 关闭弹窗。命令面板支持搜索跳转和快捷操作。" },
+    { q: "如何查看通知？", a: "顶部工具栏的铃铛图标显示当前待办数量。点击铃铛可以展开通知面板，查看待办事项并直接跳转处理。" },
+    { q: "试用账号是什么？", a: "家长账号：13800000000 / 123456；陪伴者账号：13900000000 / 123456。可以直接登录体验全部功能。" }
+  ];
+
+  const guides = state.user?.role === "provider" ? [
+    { icon: "📝", title: "完善主页", text: "填写简介、技能标签和时薪" },
+    { icon: "🛡️", title: "完成认证", text: "提升可信度，获得更多订单" },
+    { icon: "🔍", title: "浏览需求", text: "在接单大厅查看附近需求" },
+    { icon: "✅", title: "接单沟通", text: "接单后在消息页与家长确认细节" },
+    { icon: "📋", title: "陪伴记录", text: "填写活动、情绪和建议" }
+  ] : [
+    { icon: "👶", title: "建立档案", text: "添加孩子信息和注意事项" },
+    { icon: "📢", title: "发布需求", text: "描述时间、地点和服务类型" },
+    { icon: "🤝", title: "选择陪伴者", text: "查看匹配分并下单" },
+    { icon: "💬", title: "订单沟通", text: "在消息页确认陪伴细节" },
+    { icon: "⭐", title: "评价反馈", text: "完成后评价，帮助其他家长" }
+  ];
+
+  root.innerHTML = `
+    <section class="panel help-hero">
+      <div class="panel-head"><div><h2>帮助中心</h2><p>在这里找到使用指南、常见问题和平台规则。</p></div></div>
+      <div class="help-guides">
+        ${guides.map(g => `
+          <div class="help-guide-card">
+            <span class="help-guide-icon">${g.icon}</span>
+            <strong>${escapeHtml(g.title)}</strong>
+            <p class="muted">${escapeHtml(g.text)}</p>
+          </div>
+        `).join("")}
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><h2>常见问题</h2><p>点击问题展开查看答案。</p></div></div>
+      <div class="faq-list">
+        ${faqs.map((faq, i) => `
+          <details class="faq-item" ${i === 0 ? "open" : ""}>
+            <summary>
+              <span>${escapeHtml(faq.q)}</span>
+              <i class="faq-arrow" aria-hidden="true"></i>
+            </summary>
+            <div class="faq-answer"><p>${escapeHtml(faq.a)}</p></div>
+          </details>
+        `).join("")}
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><h2>平台规则</h2><p>使用伴芽平台需要遵守以下基本规则。</p></div></div>
+      <div class="rules-list">
+        <article class="rule-item">
+          <span class="rule-num">1</span>
+          <div><strong>实名与认证</strong><p>陪伴者需完成认证后才能接单，家长需提供真实孩子信息。</p></div>
+        </article>
+        <article class="rule-item">
+          <span class="rule-num">2</span>
+          <div><strong>安全第一</strong><p>首次陪伴建议在公共场所见面，确认身份后再前往家中。</p></div>
+        </article>
+        <article class="rule-item">
+          <span class="rule-num">3</span>
+          <div><strong>订单内沟通</strong><p>关键约定请通过平台消息确认，便于后续追踪和留痕。</p></div>
+        </article>
+        <article class="rule-item">
+          <span class="rule-num">4</span>
+          <div><strong>如实评价</strong><p>完成后请如实评价，帮助其他家庭做出选择。</p></div>
+        </article>
+        <article class="rule-item">
+          <span class="rule-num">5</span>
+          <div><strong>隐私保护</strong><p>不要在公开区域透露孩子详细住址和联系方式，通过平台沟通。</p></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div><h2>联系我们</h2><p>遇到问题可以通过以下方式反馈。</p></div></div>
+      <div class="contact-grid">
+        <div class="contact-card">
+          <span class="contact-icon">💬</span>
+          <strong>在线反馈</strong>
+          <p class="muted">在消息页选择系统会话留言</p>
+        </div>
+        <div class="contact-card">
+          <span class="contact-icon">📧</span>
+          <strong>邮件联系</strong>
+          <p class="muted">support@banya.example</p>
+        </div>
+        <div class="contact-card">
+          <span class="contact-icon">⏰</span>
+          <strong>服务时间</strong>
+          <p class="muted">每日 8:00 - 22:00</p>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
 function render() {
   renderStats();
   renderAuth();
@@ -1570,6 +1760,8 @@ function render() {
   renderProviders();
   renderOrders();
   renderMessages();
+  renderProfile();
+  renderHelp();
   updateNotifyBadge();
   window.requestAnimationFrame(() => refreshReveal());
 }
@@ -1602,6 +1794,42 @@ async function handleAction(actionBtn) {
     if (state.user) localStorage.setItem(`banya-onboarding-${state.user.id}`, "1");
     render();
     toast("引导已关闭，随时可以开始");
+    return;
+  }
+  if (action === "toggle-theme-pref") {
+    toggleTheme();
+    render();
+    return;
+  }
+  if (action === "toggle-font-pref") {
+    toggleFontSize();
+    render();
+    return;
+  }
+  if (action === "reset-onboarding") {
+    if (state.user) localStorage.removeItem(`banya-onboarding-${state.user.id}`);
+    state.view = "dashboard";
+    render();
+    toast("新手引导已重新显示");
+    return;
+  }
+  if (action === "logout") {
+    await api("/api/auth/logout", { method: "POST" }).catch(() => {});
+    localStorage.removeItem(TOKEN_KEY);
+    state.user = null;
+    state.provider = null;
+    state.view = "dashboard";
+    toast("已退出登录");
+    await refresh();
+    return;
+  }
+  if (action === "clear-cache") {
+    localStorage.removeItem(THEME_KEY);
+    localStorage.removeItem(FONTSIZE_KEY);
+    document.documentElement.removeAttribute("data-theme");
+    document.documentElement.removeAttribute("data-fontsize");
+    toast("本地缓存已清除");
+    render();
     return;
   }
   if (action === "clear-request-search") {
@@ -1916,6 +2144,12 @@ document.addEventListener("submit", async event => {
       await api("/api/messages", { method: "POST", body: data });
       form.reset();
       toast("消息已发送", "success");
+      await refresh();
+    }
+    if (form.id === "profileForm") {
+      const data = Object.fromEntries(new FormData(form).entries());
+      await api("/api/auth/profile", { method: "PUT", body: data });
+      toast("账号信息已保存", "success");
       await refresh();
     }
   } catch (error) {
