@@ -1379,6 +1379,23 @@ button {
   color: var(--ink);
 }
 
+.urgency-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 4px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--danger);
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 800;
+  vertical-align: text-top;
+  box-shadow: 0 4px 10px rgba(217, 69, 69, 0.24);
+}
+
 .request-pay {
   color: var(--salary);
   font-weight: 700;
@@ -1406,6 +1423,12 @@ button {
 .request-tags .tag {
   font-size: 12px;
   padding: 2px 8px;
+}
+
+.request-tags .tag.hot {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: rgba(217, 69, 69, 0.18);
 }
 
 /* 右侧详情面板 */
@@ -1460,6 +1483,12 @@ button {
   gap: 12px;
 }
 
+.match-intro {
+  margin-top: -4px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
 .recommend-card {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -1474,6 +1503,22 @@ button {
   transition: all var(--t-fast);
   position: relative;
   overflow: hidden;
+}
+
+.recommend-main {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
+}
+
+.recommend-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-self: stretch;
+  justify-content: center;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -1535,6 +1580,14 @@ button {
 
 .recommend-info {
   flex: 1;
+  min-width: 0;
+}
+
+.recommend-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .recommend-info h3 {
@@ -1549,6 +1602,61 @@ button {
   margin: 3px 0 0;
   font-size: 13px;
   color: var(--muted);
+}
+
+.match-badge {
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  color: var(--brand-dark);
+  background: var(--brand-soft);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.match-meter {
+  position: relative;
+  height: 18px;
+  margin: 8px 0 6px;
+  border-radius: var(--radius-full);
+  background: var(--line-soft);
+  overflow: hidden;
+}
+
+.match-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--brand), #44d49b);
+  box-shadow: 0 0 16px rgba(10, 157, 114, 0.25);
+}
+
+.match-meter b {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.match-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 6px 0;
+}
+
+.match-reasons span {
+  padding: 3px 7px;
+  border-radius: var(--radius-full);
+  color: var(--ink-2);
+  background: var(--card-2);
+  border: 1px solid var(--line-soft);
+  font-size: 12px;
 }
 
 .action-strip {
@@ -2034,7 +2142,8 @@ textarea:focus {
     align-items: stretch;
   }
 
-  .recommend-card > div:last-child {
+  .recommend-card > div:last-child,
+  .recommend-actions {
     flex-direction: row;
   }
 

@@ -474,12 +474,79 @@ function tagRow(tags) {
   return `<div class="tag-row">${(tags || []).map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}</div>`;
 }
 
+function distanceValue(distance) {
+  const value = Number(String(distance || "").match(/[\d.]+/)?.[0] || 99);
+  return Number.isFinite(value) ? value : 99;
+}
+
+function providerMatchSummary(request, provider) {
+  const serviceText = `${request.service || ""} ${request.note || ""}`;
+  const matchedSkills = (provider.skills || []).filter(skill => serviceText.includes(skill) || serviceText.includes(skill.slice(0, 2)));
+  const budget = Number(request.budget || 0);
+  const price = Number(provider.price || 0);
+  const distance = distanceValue(provider.distance);
+  const rating = Number(provider.rating || 0);
+  const reasons = [];
+  let score = 48;
+
+  if (matchedSkills.length) {
+    score += Math.min(24, matchedSkills.length * 9);
+    reasons.push(`技能匹配：${matchedSkills.slice(0, 2).join("、")}`);
+  } else if ((provider.skills || []).length) {
+    score += 6;
+    reasons.push(`可覆盖：${provider.skills.slice(0, 2).join("、")}`);
+  }
+
+  if (provider.verified) {
+    score += 12;
+    reasons.push("已完成认证");
+  }
+
+  if (rating >= 4.8) {
+    score += 8;
+    reasons.push("评分稳定");
+  } else if (rating >= 4.5) {
+    score += 5;
+    reasons.push("评价较好");
+  }
+
+  if (budget && price) {
+    const gap = price - budget;
+    if (gap <= 0) {
+      score += 8;
+      reasons.push("价格在预算内");
+    } else if (gap <= 20) {
+      score += 4;
+      reasons.push("价格接近预算");
+    } else {
+      score -= 8;
+      reasons.push("价格高于预算");
+    }
+  }
+
+  if (distance <= 1) {
+    score += 8;
+    reasons.push("距离很近");
+  } else if (distance <= 2) {
+    score += 5;
+    reasons.push("距离适中");
+  }
+
+  score = Math.max(35, Math.min(98, score));
+  const label = score >= 88 ? "强推荐" : score >= 74 ? "较匹配" : "可沟通";
+  return {
+    score,
+    label,
+    reasons: reasons.slice(0, 4),
+    matchedSkills
+  };
+}
+
 function bestProvidersFor(request) {
   return state.providers
     .map(provider => {
-      const text = `${request.service} ${request.note}`;
-      const score = (provider.skills || []).reduce((sum, skill) => sum + (text.includes(skill.slice(0, 2)) ? 2 : 0), 0) + (provider.verified ? 2 : 0);
-      return { ...provider, score };
+      const match = providerMatchSummary(request, provider);
+      return { ...provider, match, score: match.score };
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, 3);
@@ -881,10 +948,11 @@ function renderRequestBoard(requests, mode) {
 }
 
 function renderRequestListItem(request, selectedId) {
+  const isUrgent = /今天|临时|紧急|马上|尽快/.test(`${request.date} ${request.service} ${request.note}`);
   return `
     <button class="request-list-item ${request.id === selectedId ? "active" : ""}" data-action="select-request" data-request="${request.id}">
       <div class="request-item-head">
-        <span class="request-title">${escapeHtml(request.service)}</span>
+        <span class="request-title">${escapeHtml(request.service)} ${isUrgent ? `<em class="urgency-badge">急</em>` : ""}</span>
         <span class="request-pay">${escapeHtml(request.budget)}元/时</span>
       </div>
       <span class="request-child">${escapeHtml(request.childName)} · ${escapeHtml(request.age)}岁</span>
@@ -892,6 +960,7 @@ function renderRequestListItem(request, selectedId) {
       <div class="request-tags">
         <span class="tag">${escapeHtml(request.service)}</span>
         <span class="tag">${escapeHtml(request.area)}</span>
+        ${isUrgent ? `<span class="tag hot">优先响应</span>` : ""}
       </div>
     </button>
   `;
@@ -920,19 +989,27 @@ function renderRequestDetail(request, mode) {
     </div>
     ${mode === "parent" && request.status === "open" ? `
       <div class="detail-section">
-        <h3>推荐陪伴者</h3>
+        <h3>智能推荐陪伴者</h3>
+        <p class="muted match-intro">综合技能、认证、距离、评分和预算生成匹配分，仅作辅助判断，建议下单前先沟通关键细节。</p>
         <div class="recommend-list">
           ${recommendations.map(provider => `
             <article class="recommend-card">
-              <div style="display:flex;gap:12px;align-items:center;flex:1">
+              <div class="recommend-main">
                 <div class="recommend-avatar">${escapeHtml(provider.name?.charAt(0) || "?")}</div>
                 <div class="recommend-info">
-                  <h3>${escapeHtml(provider.name)} <span class="muted" style="font-weight:400">· ${escapeHtml(provider.type)}</span></h3>
-                  <p>${escapeHtml(provider.distance)} · ${provider.price}元/时 · ${provider.verified ? "已认证" : "待认证"}</p>
-                  <div class="request-tags" style="margin-top:4px">${(provider.skills || []).slice(0, 3).map(skill => `<span class="tag">${escapeHtml(skill)}</span>`).join("")}</div>
+                  <div class="recommend-title">
+                    <h3>${escapeHtml(provider.name)} <span class="muted">· ${escapeHtml(provider.type)}</span></h3>
+                    <span class="match-badge">${provider.match.label}</span>
+                  </div>
+                  <p>${escapeHtml(provider.distance)} · ${provider.price}元/时 · ${provider.verified ? "已认证" : "待认证"} · ${ratingStars(provider.rating)}</p>
+                  <div class="match-meter" aria-label="匹配度 ${provider.match.score}%"><span style="width:${provider.match.score}%"></span><b>${provider.match.score}%</b></div>
+                  <div class="match-reasons">
+                    ${provider.match.reasons.map(reason => `<span>${escapeHtml(reason)}</span>`).join("")}
+                  </div>
+                  <div class="request-tags">${(provider.skills || []).slice(0, 3).map(skill => `<span class="tag">${escapeHtml(skill)}</span>`).join("")}</div>
                 </div>
               </div>
-              <div style="display:flex;flex-direction:column;gap:6px">
+              <div class="recommend-actions">
                 <button class="primary-btn" data-action="book" data-request="${request.id}" data-provider="${provider.id}">立即下单</button>
                 <button class="chat-btn" data-action="chat-provider" data-provider="${provider.id}">立即沟通</button>
               </div>
