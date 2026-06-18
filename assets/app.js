@@ -1447,6 +1447,133 @@ function renderOnboardingBanner() {
   `;
 }
 
+// 陪伴者工作台
+function renderProviderWorkbench() {
+  if (state.user?.role !== "provider") return "";
+  const myOrders = state.orders;
+  const today = new Date().toLocaleDateString("zh-CN");
+  const todayOrders = myOrders.filter(o => o.date && (o.date.includes("今天") || o.date === today));
+  const activeOrders = myOrders.filter(o => o.status === "accepted" || o.status === "arrived");
+  const doneOrders = myOrders.filter(o => o.status === "done");
+  const totalEarnings = doneOrders.reduce((sum, o) => sum + Number(o.price || 0) * 2, 0);
+  const myReviews = myOrders.filter(o => o.review);
+  const avgRating = myReviews.length
+    ? (myReviews.reduce((sum, o) => sum + Number(o.review?.rating || 0), 0) / myReviews.length).toFixed(1)
+    : "—";
+  const pendingReports = myOrders.filter(o => (o.status === "arrived" || o.status === "done") && !o.report?.activities);
+
+  // 评分趋势（最近 6 条评价）
+  const ratingTrend = myReviews.slice(-6).map(o => Number(o.review?.rating || 0));
+
+  // 服务类型分布
+  const serviceCounts = {};
+  myOrders.forEach(o => {
+    if (o.service) serviceCounts[o.service] = (serviceCounts[o.service] || 0) + 1;
+  });
+  const topServices = Object.entries(serviceCounts).sort((a, b) => b[1] - a[1]).slice(0, 4);
+
+  return `
+    <section class="panel workbench-panel">
+      <div class="panel-head">
+        <div>
+          <h2>陪伴者工作台</h2>
+          <p>今日任务、收入统计和评分趋势一览。</p>
+        </div>
+        <span class="status ${state.provider?.verified ? "open" : "matched"}">${state.provider?.verified ? "已认证" : "待认证"}</span>
+      </div>
+
+      <div class="workbench-stats">
+        <div class="wb-stat-card">
+          <span class="wb-icon">📅</span>
+          <div><strong>${todayOrders.length}</strong><span>今日任务</span></div>
+        </div>
+        <div class="wb-stat-card">
+          <span class="wb-icon">🔄</span>
+          <div><strong>${activeOrders.length}</strong><span>进行中</span></div>
+        </div>
+        <div class="wb-stat-card">
+          <span class="wb-icon">💰</span>
+          <div><strong>${totalEarnings}</strong><span>累计收入（元）</span></div>
+        </div>
+        <div class="wb-stat-card">
+          <span class="wb-icon">⭐</span>
+          <div><strong>${avgRating}</strong><span>平均评分</span></div>
+        </div>
+      </div>
+
+      ${pendingReports.length ? `
+        <div class="wb-alert">
+          <span>📝</span>
+          <div>
+            <strong>${pendingReports.length} 个订单待填写陪伴记录</strong>
+            <p>完成陪伴后请及时填写记录，方便家长了解孩子情况。</p>
+          </div>
+          <button class="primary-btn" data-view="orders">去填写</button>
+        </div>
+      ` : ""}
+
+      <div class="workbench-grid">
+        ${todayOrders.length ? `
+          <div class="wb-section">
+            <h3>📅 今日任务</h3>
+            <div class="wb-task-list">
+              ${todayOrders.map(o => `
+                <div class="wb-task-item">
+                  <div class="wb-task-time">${escapeHtml(o.time || "时间待定")}</div>
+                  <div class="wb-task-info">
+                    <strong>${escapeHtml(o.childName)} · ${escapeHtml(o.service)}</strong>
+                    <p class="muted">${escapeHtml(o.area)} · ${statusLabel(o.status)}</p>
+                  </div>
+                  <button class="ghost-btn" data-action="open-order-drawer" data-order="${o.id}">详情</button>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        ` : `
+          <div class="wb-section">
+            <h3>📅 今日任务</h3>
+            <div class="wb-empty">今天暂无任务，去需求广场看看有没有合适的订单吧。</div>
+          </div>
+        `}
+
+        ${ratingTrend.length ? `
+          <div class="wb-section">
+            <h3>⭐ 评分趋势</h3>
+            <div class="wb-rating-chart">
+              ${ratingTrend.map(r => `
+                <div class="wb-rating-bar">
+                  <span class="wb-rating-fill" style="height:${(r / 5) * 100}%"></span>
+                  <small>${r}</small>
+                </div>
+              `).join("")}
+            </div>
+            <p class="muted wb-chart-caption">最近 ${ratingTrend.length} 次评价</p>
+          </div>
+        ` : ""}
+
+        ${topServices.length ? `
+          <div class="wb-section">
+            <h3>🎯 服务类型分布</h3>
+            <div class="wb-service-list">
+              ${topServices.map(([name, count]) => {
+                const max = topServices[0][1];
+                const pct = Math.round((count / max) * 100);
+                return `
+                  <div class="wb-service-item">
+                    <span class="wb-service-name">${escapeHtml(name)}</span>
+                    <div class="wb-service-track"><span style="width:${pct}%"></span></div>
+                    <span class="wb-service-count">${count}</span>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          </div>
+        ` : ""}
+      </div>
+    </section>
+  `;
+}
+
 function renderDashboard() {
   const root = $("#dashboardView");
   if (!state.user) {
@@ -1458,6 +1585,7 @@ function renderDashboard() {
     root.innerHTML = `
       ${renderOnboardingBanner()}
       ${renderNotificationCenter()}
+      ${renderProviderWorkbench()}
       ${renderQualityPanel()}
       ${renderActivityPanel()}
       ${renderSafetyPanel()}
@@ -2029,6 +2157,7 @@ function renderOrderCard(order) {
       ${order.review ? `
         <div class="mini-card">
           <strong>家长评价：${"★".repeat(Number(order.review.rating || 0))}${"☆".repeat(5 - Number(order.review.rating || 0))}</strong>
+          ${order.review.tags ? `<div class="review-tag-display">${order.review.tags.split(",").map(t => `<span class="review-tag-chip">${escapeHtml(t)}</span>`).join("")}</div>` : ""}
           <p>${escapeHtml(order.review.text || "家长未填写文字评价")}</p>
         </div>
       ` : ""}
@@ -2042,10 +2171,25 @@ function renderOrderCard(order) {
         </form>
       ` : ""}
       ${state.user?.role === "parent" && order.status === "done" && !order.review ? `
-        <form class="form-grid compact-form" data-form="review" data-order="${order.id}">
-          <div class="field"><label>评分</label><select name="rating"><option value="5">5分</option><option value="4">4分</option><option value="3">3分</option><option value="2">2分</option><option value="1">1分</option></select></div>
-          <div class="field full"><label>评价内容</label><textarea name="text" placeholder="这次陪伴哪里做得好？有什么建议？"></textarea></div>
-          <div class="field full"><button class="ghost-btn" type="submit">提交评价</button></div>
+        <form class="form-grid compact-form review-form-enhanced" data-form="review" data-order="${order.id}">
+          <div class="field full">
+            <label>总体评分</label>
+            <div class="star-rating" data-name="rating">
+              ${[5,4,3,2,1].map(n => `<button type="button" class="star-btn" data-value="${n}" aria-label="${n}星">★</button>`).join("")}
+            </div>
+            <input type="hidden" name="rating" value="5">
+          </div>
+          <div class="field full">
+            <label>评价标签（可多选）</label>
+            <div class="review-tags">
+              ${["耐心细致", "准时到达", "孩子喜欢", "沟通顺畅", "活动丰富", "安全可靠", "专业能力强", "有亲和力"].map(tag =>
+                `<button type="button" class="review-tag" data-value="${tag}">${tag}</button>`
+              ).join("")}
+            </div>
+            <input type="hidden" name="tags" value="">
+          </div>
+          <div class="field full"><label>评价内容</label><textarea name="text" placeholder="这次陪伴哪里做得好？有什么建议？" maxlength="500" data-count="reviewCount"></textarea><small class="char-count"><span id="reviewCount">0</span>/500</small></div>
+          <div class="field full"><button class="primary-btn" type="submit">提交评价</button></div>
         </form>
       ` : ""}
       <div class="card-actions">
@@ -2762,6 +2906,31 @@ async function handleAction(actionBtn) {
 }
 
 document.addEventListener("click", async event => {
+  // 星级评分按钮
+  const starBtn = event.target.closest(".star-btn");
+  if (starBtn) {
+    const container = starBtn.closest(".star-rating");
+    const value = Number(starBtn.dataset.value);
+    const hidden = container.parentElement.querySelector('input[type="hidden"]');
+    if (hidden) hidden.value = value;
+    container.querySelectorAll(".star-btn").forEach(btn => {
+      btn.classList.toggle("active", Number(btn.dataset.value) <= value);
+    });
+    return;
+  }
+  // 评价标签
+  const reviewTag = event.target.closest(".review-tag");
+  if (reviewTag) {
+    reviewTag.classList.toggle("active");
+    const container = reviewTag.closest(".review-tags");
+    const hidden = container.parentElement.querySelector('input[type="hidden"][name="tags"]');
+    if (hidden) {
+      const selected = Array.from(container.querySelectorAll(".review-tag.active")).map(t => t.dataset.value);
+      hidden.value = selected.join(",");
+    }
+    return;
+  }
+
   const authTab = event.target.closest("[data-auth-mode]");
   if (authTab) {
     state.authMode = authTab.dataset.authMode;
