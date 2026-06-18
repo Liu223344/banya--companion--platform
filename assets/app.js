@@ -485,6 +485,132 @@ function bestProvidersFor(request) {
     .slice(0, 3);
 }
 
+function relativeTime(value) {
+  const time = new Date(value || Date.now()).getTime();
+  const diff = Math.max(0, Date.now() - time);
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "刚刚";
+  if (minutes < 60) return `${minutes}分钟前`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}小时前`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}天前`;
+  return new Date(time).toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" });
+}
+
+function businessMetrics() {
+  const activeOrders = state.orders.filter(order => order.status === "accepted" || order.status === "arrived").length;
+  const finishedOrders = state.orders.filter(order => order.status === "done").length;
+  const reviewedOrders = state.orders.filter(order => order.review).length;
+  const avgRating = state.reviews.length
+    ? (state.reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / state.reviews.length).toFixed(1)
+    : "暂无";
+  const verifiedProviders = state.providers.filter(provider => provider.verified).length;
+  const verifyRate = state.providers.length ? Math.round((verifiedProviders / state.providers.length) * 100) : 0;
+  const completionRate = state.orders.length ? Math.round((finishedOrders / state.orders.length) * 100) : 0;
+  const responseRate = state.orders.length ? Math.round((state.messages.length / Math.max(state.orders.length, 1)) * 100) : 0;
+  return { activeOrders, finishedOrders, reviewedOrders, avgRating, verifiedProviders, verifyRate, completionRate, responseRate };
+}
+
+function renderQualityPanel() {
+  const metrics = businessMetrics();
+  const cards = [
+    { label: "进行中订单", value: metrics.activeOrders, hint: "需要持续跟进", cls: "brand" },
+    { label: "完成率", value: `${metrics.completionRate}%`, hint: `${metrics.finishedOrders} 单已完成`, cls: "success" },
+    { label: "陪伴者认证", value: `${metrics.verifyRate}%`, hint: `${metrics.verifiedProviders}/${state.providers.length || 0} 已认证`, cls: "warning" },
+    { label: "平均评分", value: metrics.avgRating, hint: `${metrics.reviewedOrders} 单已有评价`, cls: "rating" }
+  ];
+  return `
+    <section class="panel quality-panel">
+      <div class="panel-head">
+        <div>
+          <h2>服务质量概览</h2>
+          <p>用几个关键指标快速判断当前平台运行状态。</p>
+        </div>
+        <button class="ghost-btn" data-view="orders">查看订单</button>
+      </div>
+      <div class="quality-grid">
+        ${cards.map(card => `
+          <article class="quality-card ${card.cls}">
+            <span>${card.label}</span>
+            <strong>${escapeHtml(card.value)}</strong>
+            <small>${escapeHtml(card.hint)}</small>
+          </article>
+        `).join("")}
+      </div>
+      <div class="quality-meter" aria-label="订单完成率 ${metrics.completionRate}%">
+        <span style="width:${metrics.completionRate}%"></span>
+      </div>
+      <p class="muted quality-note">绿色进度表示订单完成比例，结合认证率和评分可帮助判断服务稳定性。</p>
+    </section>
+  `;
+}
+
+function recentActivities() {
+  const requestEvents = state.requests.map(request => ({
+    type: "request",
+    title: `${request.childName} 的${request.service}`,
+    text: `${statusLabel(request.status)} · ${request.area} · ${request.budget}元/时`,
+    time: request.createdAt,
+    icon: "需"
+  }));
+  const orderEvents = state.orders.map(order => ({
+    type: "order",
+    title: `${order.childName} · ${order.service}`,
+    text: `${statusLabel(order.status)} · 陪伴者 ${order.providerName}`,
+    time: order.createdAt,
+    icon: "单"
+  }));
+  const messageEvents = state.messages.map(message => ({
+    type: "message",
+    title: message.senderRole === "parent" ? "家长发送了消息" : message.senderRole === "provider" ? "陪伴者发送了消息" : "系统通知",
+    text: message.text,
+    time: message.createdAt,
+    icon: "信"
+  }));
+  const reviewEvents = state.reviews.map(review => ({
+    type: "review",
+    title: `收到 ${review.rating || 0} 星评价`,
+    text: review.text || "家长未填写文字评价",
+    time: review.createdAt,
+    icon: "评"
+  }));
+  return [...requestEvents, ...orderEvents, ...messageEvents, ...reviewEvents]
+    .sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0))
+    .slice(0, 6);
+}
+
+function renderActivityPanel() {
+  const items = recentActivities();
+  return `
+    <section class="panel activity-panel">
+      <div class="panel-head">
+        <div>
+          <h2>近期动态</h2>
+          <p>把需求、订单、消息和评价串成一条时间线，方便快速回看。</p>
+        </div>
+        <button class="ghost-btn" data-view="messages">查看消息</button>
+      </div>
+      ${items.length ? `
+        <div class="activity-timeline">
+          ${items.map(item => `
+            <article class="activity-item ${item.type}">
+              <span class="activity-icon">${escapeHtml(item.icon)}</span>
+              <div>
+                <div class="activity-title">
+                  <strong>${escapeHtml(item.title)}</strong>
+                  <small>${relativeTime(item.time)}</small>
+                </div>
+                <p>${escapeHtml(item.text)}</p>
+              </div>
+            </article>
+          `).join("")}
+        </div>
+      ` : emptyState("暂无近期动态", "发布需求、生成订单或发送消息后，这里会自动出现时间线。")}
+    </section>
+  `;
+}
+
 function renderDashboard() {
   const root = $("#dashboardView");
   if (!state.user) {
@@ -494,6 +620,8 @@ function renderDashboard() {
   if (state.user.role === "parent") {
     const openRequests = state.requests.filter(item => item.status === "open");
     root.innerHTML = `
+      ${renderQualityPanel()}
+      ${renderActivityPanel()}
       ${renderChildrenPanel()}
       <section class="panel" id="createRequestPanel">
         <div class="panel-head">
@@ -537,6 +665,8 @@ function renderDashboard() {
     `;
   } else {
     root.innerHTML = `
+      ${renderQualityPanel()}
+      ${renderActivityPanel()}
       <section class="panel">
         <div class="panel-head">
           <div><h2>陪伴者主页</h2><p>完善资料后，家长更容易选择你。</p></div>
