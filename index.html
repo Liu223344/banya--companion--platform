@@ -9,17 +9,23 @@
 </head>
 <body>
   <header class="topbar">
-    <a class="logo" href="#dashboard" aria-label="伴芽首页">
-      <span>芽</span>
-      <strong>伴芽</strong>
-    </a>
-    <nav class="main-nav" aria-label="主导航">
-      <button data-view="dashboard" class="nav-btn active">首页</button>
-      <button data-view="requests" class="nav-btn">需求广场</button>
-      <button data-view="providers" class="nav-btn">陪伴者</button>
-      <button data-view="orders" class="nav-btn">订单</button>
-      <button data-view="messages" class="nav-btn">消息</button>
-    </nav>
+    <div class="topbar-left">
+      <a class="logo" href="#dashboard" aria-label="伴芽首页">
+        <span>芽</span>
+        <strong>伴芽</strong>
+      </a>
+      <nav class="main-nav" aria-label="主导航">
+        <button data-view="dashboard" class="nav-btn active">首页</button>
+        <button data-view="requests" class="nav-btn">需求广场</button>
+        <button data-view="providers" class="nav-btn">陪伴者</button>
+        <button data-view="orders" class="nav-btn">我的订单</button>
+        <button data-view="messages" class="nav-btn">消息</button>
+      </nav>
+    </div>
+    <div class="topbar-search">
+      <input id="globalSearch" placeholder="搜索陪伴需求、服务类型、地点" autocomplete="off">
+      <button class="search-btn" data-action="global-search">搜索</button>
+    </div>
     <div class="role-switch" aria-label="切换身份">
       <button data-role="parent" class="role-btn active">家长端</button>
       <button data-role="provider" class="role-btn">陪伴者端</button>

@@ -367,15 +367,40 @@ function renderRequestBoard(requests, mode) {
   if (!requests.length) return `<div class="empty">暂无需求。</div>`;
   return `
     <div class="boss-board">
-      <aside class="boss-list">
+      <aside class="boss-sidebar">
+        <div class="sidebar-group">
+          <div class="sidebar-title">服务类型</div>
+          <button class="sidebar-item active" data-action="filter-service" data-value="">全部</button>
+          <button class="sidebar-item" data-action="filter-service" data-value="放学接送">放学接送</button>
+          <button class="sidebar-item" data-action="filter-service" data-value="作业引导">作业引导</button>
+          <button class="sidebar-item" data-action="filter-service" data-value="户外运动">户外运动</button>
+          <button class="sidebar-item" data-action="filter-service" data-value="周末兴趣">周末兴趣</button>
+          <button class="sidebar-item" data-action="filter-service" data-value="临时紧急">临时紧急</button>
+        </div>
+        <div class="sidebar-group">
+          <div class="sidebar-title">预算范围</div>
+          <button class="sidebar-item active" data-action="filter-budget" data-value="">不限</button>
+          <button class="sidebar-item" data-action="filter-budget" data-value="0-80">80元以下</button>
+          <button class="sidebar-item" data-action="filter-budget" data-value="80-120">80-120元</button>
+          <button class="sidebar-item" data-action="filter-budget" data-value="120-9999">120元以上</button>
+        </div>
+        <div class="sidebar-group">
+          <div class="sidebar-title">需求状态</div>
+          <button class="sidebar-item active" data-action="filter-status" data-value="">全部</button>
+          <button class="sidebar-item" data-action="filter-status" data-value="open">待匹配</button>
+          <button class="sidebar-item" data-action="filter-status" data-value="accepted">已接单</button>
+          <button class="sidebar-item" data-action="filter-status" data-value="done">已完成</button>
+        </div>
+      </aside>
+      <div class="boss-list">
         <div class="boss-filter">
-          <input id="requestSearchInput" placeholder="搜索地点、服务、孩子昵称">
+          <input id="requestSearchInput" placeholder="搜索地点、服务、孩子昵称" autocomplete="off">
           <button class="small-btn" data-action="clear-request-search">重置</button>
         </div>
         <div id="requestListItems" class="request-list-items">
           ${requests.map(request => renderRequestListItem(request, selected?.id)).join("")}
         </div>
-      </aside>
+      </div>
       <section class="boss-detail">
         ${renderRequestDetail(selected, mode)}
       </section>
@@ -386,23 +411,29 @@ function renderRequestBoard(requests, mode) {
 function renderRequestListItem(request, selectedId) {
   return `
     <button class="request-list-item ${request.id === selectedId ? "active" : ""}" data-action="select-request" data-request="${request.id}">
-      <span class="request-title">${escapeHtml(request.service)}</span>
+      <div class="request-item-head">
+        <span class="request-title">${escapeHtml(request.service)}</span>
+        <span class="request-pay">${escapeHtml(request.budget)}元/时</span>
+      </div>
       <span class="request-child">${escapeHtml(request.childName)} · ${escapeHtml(request.age)}岁</span>
-      <span class="request-meta">${requestMeta(request)}</span>
-      <span class="request-pay">${escapeHtml(request.budget)} 元/小时</span>
+      <span class="request-meta">${escapeHtml(request.area)} · ${escapeHtml(request.date)} ${escapeHtml(request.time)}</span>
+      <div class="request-tags">
+        <span class="tag">${escapeHtml(request.service)}</span>
+        <span class="tag">${escapeHtml(request.area)}</span>
+      </div>
     </button>
   `;
 }
 
 function renderRequestDetail(request, mode) {
-  if (!request) return `<div class="empty">请选择一个需求。</div>`;
+  if (!request) return `<div class="empty">请选择一个需求查看详情。</div>`;
   const recommendations = bestProvidersFor(request);
   return `
     <div class="detail-head">
       <div>
         <span class="status ${request.status}">${statusLabel(request.status)}</span>
         <h2>${escapeHtml(request.service)}</h2>
-        <p class="muted">${requestMeta(request)}</p>
+        <p class="muted">${escapeHtml(request.area)} · ${escapeHtml(request.date)} ${escapeHtml(request.time)}</p>
       </div>
       <strong class="detail-pay">${escapeHtml(request.budget)} 元/小时</strong>
     </div>
@@ -421,12 +452,18 @@ function renderRequestDetail(request, mode) {
         <div class="recommend-list">
           ${recommendations.map(provider => `
             <article class="recommend-card">
-              <div>
-                <h3>${escapeHtml(provider.name)} <span class="muted">· ${escapeHtml(provider.type)}</span></h3>
-                <p class="muted">${escapeHtml(provider.distance)}｜${provider.price} 元/小时｜${provider.verified ? "已认证" : "待认证"}</p>
-                ${tagRow(provider.skills)}
+              <div style="display:flex;gap:12px;align-items:center;flex:1">
+                <div class="recommend-avatar">${escapeHtml(provider.name?.charAt(0) || "?")}</div>
+                <div class="recommend-info">
+                  <h3>${escapeHtml(provider.name)} <span class="muted" style="font-weight:400">· ${escapeHtml(provider.type)}</span></h3>
+                  <p>${escapeHtml(provider.distance)} · ${provider.price}元/时 · ${provider.verified ? "已认证" : "待认证"}</p>
+                  <div class="request-tags" style="margin-top:4px">${(provider.skills || []).slice(0, 3).map(skill => `<span class="tag">${escapeHtml(skill)}</span>`).join("")}</div>
+                </div>
               </div>
-              <button class="primary-btn" data-action="book" data-request="${request.id}" data-provider="${provider.id}">立即下单</button>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <button class="primary-btn" data-action="book" data-request="${request.id}" data-provider="${provider.id}">立即下单</button>
+                <button class="chat-btn" data-action="chat-provider" data-provider="${provider.id}">立即沟通</button>
+              </div>
             </article>
           `).join("")}
         </div>
@@ -436,12 +473,15 @@ function renderRequestDetail(request, mode) {
       <div class="detail-section action-strip">
         <div>
           <h3>觉得合适？</h3>
-          <p class="muted">接单后会生成订单，家长和陪伴者可以继续在消息页沟通细节。</p>
+          <p class="muted">接单后会生成订单，双方可在消息页沟通细节。</p>
         </div>
-        <button class="primary-btn" data-action="accept-request" data-request="${request.id}">我要接单</button>
+        <div style="display:flex;gap:8px">
+          <button class="chat-btn" data-action="chat-parent" data-request="${request.id}">立即沟通</button>
+          <button class="primary-btn" data-action="accept-request" data-request="${request.id}">我要接单</button>
+        </div>
       </div>
     ` : ""}
-    ${request.status !== "open" ? `<div class="empty">这个需求已经进入订单流程。</div>` : ""}
+    ${request.status !== "open" ? `<div class="empty">这个需求已进入订单流程，可在"我的订单"中查看。</div>` : ""}
   `;
 }
 
@@ -649,6 +689,57 @@ async function handleAction(actionBtn) {
     const input = $("#requestSearchInput");
     if (input) input.value = "";
     $all(".request-list-item").forEach(item => item.hidden = false);
+  }
+  if (action === "filter-service" || action === "filter-budget" || action === "filter-status") {
+    const group = actionBtn.parentElement;
+    $all(".sidebar-item", group).forEach(btn => btn.classList.remove("active"));
+    actionBtn.classList.add("active");
+    const filterType = action.replace("filter-", "");
+    const filterValue = actionBtn.dataset.value;
+    const allItems = $all(".request-list-item");
+    allItems.forEach(item => {
+      const request = state.requests.find(r => r.id === item.dataset.request);
+      if (!request) return;
+      let match = true;
+      if (filterType === "service" && filterValue) {
+        match = request.service.includes(filterValue);
+      }
+      if (filterType === "budget" && filterValue) {
+        const [min, max] = filterValue.split("-").map(Number);
+        match = Number(request.budget) >= min && Number(request.budget) <= max;
+      }
+      if (filterType === "status" && filterValue) {
+        match = request.status === filterValue;
+      }
+      const searchInput = $("#requestSearchInput");
+      const keyword = searchInput?.value.trim().toLowerCase();
+      if (match && keyword) {
+        match = item.textContent.toLowerCase().includes(keyword);
+      }
+      item.hidden = !match;
+    });
+  }
+  if (action === "chat-provider" || action === "chat-parent") {
+    state.view = "messages";
+    render();
+    toast("已跳转到消息页，可在此沟通");
+  }
+  if (action === "global-search") {
+    const keyword = $("#globalSearch")?.value.trim().toLowerCase();
+    if (keyword) {
+      state.view = "requests";
+      render();
+      window.setTimeout(() => {
+        const input = $("#requestSearchInput");
+        if (input) {
+          input.value = keyword;
+          input.dispatchEvent(new Event("input"));
+        }
+      }, 100);
+    } else {
+      state.view = "requests";
+      render();
+    }
   }
   if (action === "book") {
     await api(`/api/requests/${actionBtn.dataset.request}/book`, {
