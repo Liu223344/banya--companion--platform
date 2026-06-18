@@ -19,6 +19,8 @@ let state = {
   loading: false,
   orderFilter: "all",
   providerFilter: "all",
+  providerSort: "match",
+  providerSearch: "",
   selectedThreadId: null
 };
 
@@ -1338,6 +1340,8 @@ function ratingStars(rating) {
 
 function renderProviders() {
   const filter = state.providerFilter || "all";
+  const sort = state.providerSort || "match";
+  const keyword = (state.providerSearch || "").trim().toLowerCase();
   const enriched = state.providers.map(p => ({ ...p, _status: providerStatus(p) }));
   const counts = {
     all: enriched.length,
@@ -1345,20 +1349,49 @@ function renderProviders() {
     busy: enriched.filter(p => p._status.key === "busy").length,
     verified: enriched.filter(p => p.verified).length
   };
-  const filtered = enriched.filter(p => {
+  let filtered = enriched.filter(p => {
     if (filter === "online") return p._status.key === "online";
     if (filter === "busy") return p._status.key === "busy";
     if (filter === "verified") return p.verified;
     return true;
   });
+  if (keyword) {
+    filtered = filtered.filter(p =>
+      p.name.toLowerCase().includes(keyword) ||
+      p.type.toLowerCase().includes(keyword) ||
+      p.bio.toLowerCase().includes(keyword) ||
+      (p.skills || []).some(s => s.toLowerCase().includes(keyword))
+    );
+  }
+  filtered.sort((a, b) => {
+    if (sort === "rating") return Number(b.rating || 0) - Number(a.rating || 0);
+    if (sort === "price") return Number(a.price || 0) - Number(b.price || 0);
+    if (sort === "orders") return Number(b.orders || 0) - Number(a.orders || 0);
+    return 0;
+  });
   $("#providersView").innerHTML = `
     <section class="panel">
       <div class="panel-head"><div><h2>陪伴者列表</h2><p>认证陪伴者、技能标签和服务价格。</p></div></div>
-      <div class="tabs order-tabs">
-        <button class="tab ${filter === "all" ? "active" : ""}" data-action="filter-providers" data-value="all">全部 ${counts.all}</button>
-        <button class="tab ${filter === "online" ? "active" : ""}" data-action="filter-providers" data-value="online">在线 ${counts.online}</button>
-        <button class="tab ${filter === "busy" ? "active" : ""}" data-action="filter-providers" data-value="busy">忙碌 ${counts.busy}</button>
-        <button class="tab ${filter === "verified" ? "active" : ""}" data-action="filter-providers" data-value="verified">认证 ${counts.verified}</button>
+      <div class="provider-toolbar">
+        <div class="tabs order-tabs">
+          <button class="tab ${filter === "all" ? "active" : ""}" data-action="filter-providers" data-value="all">全部 ${counts.all}</button>
+          <button class="tab ${filter === "online" ? "active" : ""}" data-action="filter-providers" data-value="online">在线 ${counts.online}</button>
+          <button class="tab ${filter === "busy" ? "active" : ""}" data-action="filter-providers" data-value="busy">忙碌 ${counts.busy}</button>
+          <button class="tab ${filter === "verified" ? "active" : ""}" data-action="filter-providers" data-value="verified">认证 ${counts.verified}</button>
+        </div>
+        <div class="provider-search">
+          <input type="search" id="providerSearchInput" value="${escapeHtml(keyword)}" placeholder="搜索姓名、技能、类型..." autocomplete="off">
+          <button class="ghost-btn ${keyword ? "active" : ""}" data-action="clear-provider-search" aria-label="清空搜索">✕</button>
+        </div>
+        <div class="provider-sort">
+          <label>排序</label>
+          <select id="providerSort" data-action="sort-providers">
+            <option value="match" ${sort === "match" ? "selected" : ""}>默认匹配</option>
+            <option value="rating" ${sort === "rating" ? "selected" : ""}>评分最高</option>
+            <option value="price" ${sort === "price" ? "selected" : ""}>价格最低</option>
+            <option value="orders" ${sort === "orders" ? "selected" : ""}>接单最多</option>
+          </select>
+        </div>
       </div>
       ${filtered.length ? `<div class="grid cols-3">
         ${filtered.map(provider => {
@@ -1912,6 +1945,14 @@ async function handleAction(actionBtn) {
     state.providerFilter = actionBtn.dataset.value || "all";
     render();
   }
+  if (action === "sort-providers") {
+    state.providerSort = actionBtn.value || "match";
+    render();
+  }
+  if (action === "clear-provider-search") {
+    state.providerSearch = "";
+    render();
+  }
   if (action === "open-thread") {
     state.selectedThreadId = actionBtn.dataset.thread || null;
     render();
@@ -2094,11 +2135,17 @@ document.addEventListener("input", event => {
     renderCommandList();
     return;
   }
-  if (event.target.id !== "requestSearchInput") return;
-  const keyword = event.target.value.trim().toLowerCase();
-  $all(".request-list-item").forEach(item => {
-    item.hidden = keyword && !item.textContent.toLowerCase().includes(keyword);
-  });
+  if (event.target.id === "requestSearchInput") {
+    const keyword = event.target.value.trim().toLowerCase();
+    $all(".request-list-item").forEach(item => {
+      item.hidden = keyword && !item.textContent.toLowerCase().includes(keyword);
+    });
+    return;
+  }
+  if (event.target.id === "providerSearchInput") {
+    state.providerSearch = event.target.value;
+    render();
+  }
 });
 
 document.addEventListener("keydown", event => {
