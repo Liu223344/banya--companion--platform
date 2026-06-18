@@ -1110,13 +1110,73 @@ function childGrowthSummaries() {
     const reviews = orders.filter(order => order.review);
     const latestReport = reports[reports.length - 1]?.report;
     const serviceTypes = [...new Set(orders.map(order => order.service).filter(Boolean))].slice(0, 3);
+
+    // 情绪趋势分析
+    const moodRecords = reports
+      .filter(r => r.report?.mood)
+      .map(r => ({ mood: r.report.mood, time: r.createdAt || r.updatedAt }))
+      .slice(-6);
+
+    // 活动偏好统计
+    const activityCounts = {};
+    reports.forEach(r => {
+      const acts = (r.report?.activities || "").split(/[，,、]/).map(s => s.trim()).filter(Boolean);
+      acts.forEach(a => { activityCounts[a] = (activityCounts[a] || 0) + 1; });
+    });
+    const topActivities = Object.entries(activityCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    // 陪伴时长估算（按订单数 × 2 小时粗估）
+    const estimatedHours = orders.length * 2;
+
+    // 平均评分
+    const avgRating = reviews.length
+      ? (reviews.reduce((sum, r) => sum + Number(r.review?.rating || 0), 0) / reviews.length).toFixed(1)
+      : null;
+
+    // 成长时间线事件
+    const timelineEvents = [];
+    orders.forEach(order => {
+      if (order.createdAt) {
+        timelineEvents.push({
+          icon: "📋",
+          title: `完成「${order.service}」陪伴`,
+          time: order.createdAt,
+          desc: `陪伴者：${order.providerName}`
+        });
+      }
+      if (order.report?.activities) {
+        timelineEvents.push({
+          icon: "📝",
+          title: "陪伴记录",
+          time: order.updatedAt || order.createdAt,
+          desc: `活动：${order.report.activities}；情绪：${order.report.mood || "未记录"}`
+        });
+      }
+      if (order.review) {
+        timelineEvents.push({
+          icon: "⭐",
+          title: `家长评价 ${"★".repeat(Number(order.review.rating || 0))}`,
+          time: order.updatedAt || order.createdAt,
+          desc: order.review.text || "未填写文字"
+        });
+      }
+    });
+    timelineEvents.sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0));
+
     return {
       child,
       orders,
       reports,
       reviews,
       latestReport,
-      serviceTypes
+      serviceTypes,
+      moodRecords,
+      topActivities,
+      estimatedHours,
+      avgRating,
+      timelineEvents: timelineEvents.slice(0, 8)
     };
   });
 }
@@ -1128,36 +1188,94 @@ function renderGrowthPanel() {
     <section class="panel growth-panel">
       <div class="panel-head">
         <div>
-          <h2>孩子成长摘要</h2>
-          <p>把陪伴记录、服务类型和评价沉淀成可回看的成长线索。</p>
+          <h2>孩子成长档案</h2>
+          <p>陪伴记录、情绪趋势、活动偏好和成长时间线的综合视图。</p>
         </div>
         <button class="ghost-btn" data-view="orders">查看陪伴记录</button>
       </div>
       ${summaries.length ? `
         <div class="growth-grid">
-          ${summaries.map(item => `
-            <article class="growth-card">
+          ${summaries.map((item, idx) => `
+            <article class="growth-card growth-card-enhanced">
               <div class="growth-head">
                 ${avatarFor(item.child.name)}
                 <div>
                   <h3>${escapeHtml(item.child.name)} · ${escapeHtml(item.child.age)}岁</h3>
                   <p class="muted">${escapeHtml((item.child.interests || []).join("、") || "暂无兴趣标签")}</p>
                 </div>
+                ${item.avgRating ? `<span class="growth-badge">★ ${item.avgRating}</span>` : ""}
               </div>
               <div class="growth-stats">
                 <span><strong>${item.orders.length}</strong> 次陪伴</span>
+                <span><strong>${item.estimatedHours}</strong> 小时</span>
                 <span><strong>${item.reports.length}</strong> 份记录</span>
                 <span><strong>${item.reviews.length}</strong> 条评价</span>
               </div>
               ${item.serviceTypes.length ? tagRow(item.serviceTypes) : `<p class="muted">暂无服务类型沉淀</p>`}
+
+              ${item.topActivities.length ? `
+                <div class="growth-section">
+                  <strong class="growth-section-title">🎨 活动偏好</strong>
+                  <div class="activity-bars">
+                    ${item.topActivities.map(([name, count]) => {
+                      const maxCount = item.topActivities[0][1];
+                      const pct = Math.round((count / maxCount) * 100);
+                      return `
+                        <div class="activity-bar-item">
+                          <span class="activity-bar-label">${escapeHtml(name)}</span>
+                          <div class="activity-bar-track"><span class="activity-bar-fill" style="width:${pct}%"></span></div>
+                          <span class="activity-bar-count">${count}</span>
+                        </div>
+                      `;
+                    }).join("")}
+                  </div>
+                </div>
+              ` : ""}
+
+              ${item.moodRecords.length ? `
+                <div class="growth-section">
+                  <strong class="growth-section-title">😊 情绪记录</strong>
+                  <div class="mood-chips">
+                    ${item.moodRecords.map(m => {
+                      const moodLower = (m.mood || "").toLowerCase();
+                      const cls = moodLower.includes("开心") || moodLower.includes("好") || moodLower.includes("积极") ? "positive"
+                        : moodLower.includes("哭") || moodLower.includes("不好") || moodLower.includes("闹") ? "negative"
+                        : "neutral";
+                      return `<span class="mood-chip ${cls}">${escapeHtml(m.mood)}</span>`;
+                    }).join("")}
+                  </div>
+                </div>
+              ` : ""}
+
               <div class="growth-note">
                 <strong>最近观察</strong>
                 <p>${escapeHtml(item.latestReport?.suggestion || item.latestReport?.mood || item.child.notes || "完成一次订单并保存陪伴记录后，这里会展示最近观察。")}</p>
               </div>
+
+              ${item.timelineEvents.length ? `
+                <details class="growth-details">
+                  <summary>📅 成长时间线（${item.timelineEvents.length} 条）</summary>
+                  <div class="growth-timeline-mini">
+                    ${item.timelineEvents.map((event, i) => `
+                      <div class="growth-tl-item ${i === item.timelineEvents.length - 1 ? "last" : ""}">
+                        <div class="growth-tl-marker">
+                          <span>${event.icon}</span>
+                          ${i < item.timelineEvents.length - 1 ? '<span class="growth-tl-line"></span>' : ""}
+                        </div>
+                        <div class="growth-tl-content">
+                          <strong>${escapeHtml(event.title)}</strong>
+                          <p class="muted">${escapeHtml(event.desc)}</p>
+                          ${event.time ? `<small>${new Date(event.time).toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" })}</small>` : ""}
+                        </div>
+                      </div>
+                    `).join("")}
+                  </div>
+                </details>
+              ` : ""}
             </article>
           `).join("")}
         </div>
-      ` : emptyState("还没有成长摘要", "先保存孩子档案，后续陪伴记录会在这里汇总。")}
+      ` : emptyState("还没有成长档案", "先保存孩子档案，后续陪伴记录会在这里汇总成成长线索。")}
     </section>
   `;
 }
