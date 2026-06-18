@@ -712,6 +712,43 @@ function renderMessages() {
   `;
 }
 
+let refreshReveal = () => {};
+
+// 滚动进场动画：让主要区块进入视口时轻微浮现
+function initScrollReveal() {
+  const targets = [
+    ".hero-panel",
+    ".stats-grid article",
+    ".panel",
+    ".item-card",
+    ".boss-board",
+    ".recommend-card",
+    ".message"
+  ].join(",");
+
+  if (!("IntersectionObserver" in window)) {
+    return () => document.querySelectorAll(targets).forEach(el => el.classList.add("is-visible"));
+  }
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add("is-visible");
+      observer.unobserve(entry.target);
+    });
+  }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+
+  return () => {
+    document.querySelectorAll(targets).forEach((el, index) => {
+      if (el.dataset.revealReady) return;
+      el.dataset.revealReady = "true";
+      el.classList.add("reveal-on-scroll");
+      el.style.transitionDelay = `${Math.min(index % 8, 5) * 35}ms`;
+      observer.observe(el);
+    });
+  };
+}
+
 function render() {
   renderStats();
   renderAuth();
@@ -726,6 +763,7 @@ function render() {
   renderProviders();
   renderOrders();
   renderMessages();
+  window.requestAnimationFrame(() => refreshReveal());
 }
 
 async function handleAction(actionBtn) {
@@ -974,6 +1012,7 @@ document.addEventListener("submit", async event => {
 // 主题和字号初始化
 initTheme();
 initFontSize();
+refreshReveal = initScrollReveal();
 refresh();
 
 // 主题切换

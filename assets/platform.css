@@ -297,7 +297,6 @@ button {
 }
 
 /* ===== 暗色主题特殊处理 ===== */
-:root[data-theme="dark"] .auth-intro,
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .auth-intro {
     background:
@@ -306,21 +305,18 @@ button {
   }
 }
 
-:root[data-theme="dark"] .logo span,
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .logo span {
     box-shadow: 0 2px 8px rgba(45, 212, 154, 0.35);
   }
 }
 
-:root[data-theme="dark"] .recommend-avatar,
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .recommend-avatar {
     box-shadow: 0 2px 8px rgba(45, 212, 154, 0.35);
   }
 }
 
-:root[data-theme="dark"] .phone-demo,
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .phone-demo {
     border-color: var(--ink-2);
@@ -328,7 +324,6 @@ button {
   }
 }
 
-:root[data-theme="dark"] .topbar,
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .topbar {
     background: rgba(15, 22, 19, 0.85);
@@ -461,7 +456,6 @@ button {
     0 4px 24px rgba(16, 42, 33, 0.04);
 }
 
-:root[data-theme="dark"] .topbar,
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .topbar {
     background: rgba(15, 22, 19, 0.7);
@@ -568,7 +562,6 @@ button {
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset;
 }
 
-:root[data-theme="dark"] .topbar-search,
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .topbar-search {
     background: rgba(255, 255, 255, 0.06);
@@ -653,7 +646,6 @@ button {
   font-weight: 600;
 }
 
-:root[data-theme="dark"] .role-btn,
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .role-btn {
     background: rgba(255, 255, 255, 0.06);
@@ -697,7 +689,6 @@ button {
   overflow: hidden;
 }
 
-:root[data-theme="dark"] .hero-panel,
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .hero-panel {
     background:
@@ -787,6 +778,7 @@ button {
   border: 0;
   color: #fff;
   background: var(--brand);
+  overflow: hidden;
   box-shadow:
     0 2px 8px rgba(10, 157, 114, 0.25),
     0 0 0 1px rgba(10, 157, 114, 0.05) inset;
@@ -827,7 +819,11 @@ button {
 }
 
 :root[data-theme="dark"] .ghost-btn,
-:root[data-theme="dark"] .small-btn,
+:root[data-theme="dark"] .small-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .ghost-btn,
   :root:not([data-theme="light"]) .small-btn {
@@ -911,8 +907,6 @@ button {
   transition: box-shadow var(--t), transform var(--t);
 }
 
-:root[data-theme="dark"] .stats-grid article,
-:root[data-theme="dark"] .item-card,
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .stats-grid article,
   :root:not([data-theme="light"]) .item-card {
@@ -1003,7 +997,6 @@ button {
   transition: box-shadow var(--t), transform var(--t);
 }
 
-:root[data-theme="dark"] .panel,
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .panel {
     background: rgba(26, 34, 31, 0.7);
@@ -1063,7 +1056,6 @@ button {
   position: relative;
 }
 
-:root[data-theme="dark"] .auth-card,
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .auth-card {
     background: rgba(26, 34, 31, 0.75);
@@ -1242,7 +1234,6 @@ button {
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
-:root[data-theme="dark"] .boss-board,
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .boss-board {
     background: rgba(26, 34, 31, 0.75);
@@ -1474,7 +1465,6 @@ button {
   overflow: hidden;
 }
 
-:root[data-theme="dark"] .recommend-card,
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .recommend-card {
     background: rgba(33, 42, 38, 0.6);
@@ -1497,7 +1487,6 @@ button {
   transform: translateY(-2px);
 }
 
-:root[data-theme="dark"] .recommend-card:hover,
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .recommend-card:hover {
     background: rgba(33, 42, 38, 0.85);
@@ -1739,7 +1728,6 @@ textarea:focus {
   transition: transform var(--t-fast);
 }
 
-:root[data-theme="dark"] .message,
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .message {
     background: rgba(33, 42, 38, 0.7);
@@ -2464,7 +2452,6 @@ textarea:focus {
   padding: 20px;
 }
 
-:root[data-theme="dark"] .modal-backdrop,
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .modal-backdrop {
     background: rgba(0, 0, 0, 0.6);
@@ -2489,7 +2476,6 @@ textarea:focus {
   animation: modalIn 0.3s var(--ease-out);
 }
 
-:root[data-theme="dark"] .modal,
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .modal {
     background: rgba(26, 34, 31, 0.92);
@@ -2708,7 +2694,132 @@ textarea:focus {
   font-size: 1.5rem;
 }
 
-/* ===== 减弱动效偏好（已在前面定义，这里确保） ===== */
+/* ===== 手动暗色主题兼容覆盖 ===== */
+:root[data-theme="dark"] .auth-intro {
+  background:
+    radial-gradient(circle at 80% 90%, rgba(255, 255, 255, 0.12), transparent 50%),
+    radial-gradient(circle at 15% 10%, rgba(255, 255, 255, 0.12), transparent 18rem),
+    linear-gradient(135deg, #0a5e47, #0d8c6a);
+}
+
+:root[data-theme="dark"] .phone-demo {
+  border-color: var(--ink-2);
+  background: var(--bg-soft);
+}
+
+/* ===== 高级视觉层：细腻噪点与渐变光边 ===== */
+html::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.14;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.55) 0 1px, transparent 1px),
+    radial-gradient(circle at 80% 80%, rgba(10, 157, 114, 0.25) 0 1px, transparent 1px);
+  background-size: 24px 24px, 32px 32px;
+  mix-blend-mode: soft-light;
+}
+
+:root[data-theme="dark"]::before {
+  opacity: 0.18;
+  mix-blend-mode: screen;
+}
+
+.glass-border {
+  position: relative;
+}
+
+.hero-panel::after,
+.auth-card::after,
+.boss-board::after,
+.panel::before,
+.item-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg,
+    rgba(255, 255, 255, 0.7),
+    rgba(10, 157, 114, 0.22) 40%,
+    rgba(232, 148, 31, 0.18) 70%,
+    rgba(255, 255, 255, 0.35));
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.65;
+  transition: opacity var(--t);
+}
+
+.hero-panel:hover::after,
+.auth-card:hover::after,
+.boss-board:hover::after,
+.panel:hover::before,
+.item-card:hover::before {
+  opacity: 1;
+}
+
+/* ===== 按钮扫光 ===== */
+.primary-btn::before,
+.role-btn.active::before,
+.search-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(120deg, transparent 0%, rgba(255, 255, 255, 0.35) 45%, transparent 60%);
+  transform: translateX(-130%);
+  transition: transform 0.65s var(--ease-out);
+  pointer-events: none;
+}
+
+.primary-btn:hover::before,
+.role-btn.active:hover::before,
+.search-btn:hover::before {
+  transform: translateX(130%);
+}
+
+.search-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+/* ===== 滚动进场动画 ===== */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(18px) scale(0.98);
+  transition:
+    opacity 0.55s var(--ease-out),
+    transform 0.55s var(--ease-out);
+}
+
+.reveal-on-scroll.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* ===== 移动端性能降级 ===== */
+@media (max-width: 640px) {
+  body::before,
+  body::after {
+    filter: blur(90px);
+    opacity: 0.32;
+  }
+
+  .hero-panel,
+  .auth-card,
+  .panel,
+  .boss-board,
+  .item-card {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+}
 
 /* ===== 可访问性：减少动效偏好 ===== */
 @media (prefers-reduced-motion: reduce) {
