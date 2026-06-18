@@ -3225,6 +3225,158 @@ html::before {
   font-size: 14px;
 }
 
+/* ===== 安全陪伴清单 ===== */
+.safety-panel {
+  overflow: hidden;
+}
+
+.safety-score {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  color: var(--brand-dark);
+  background: var(--brand-soft);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.safety-progress {
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--line-soft);
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.safety-progress span {
+  display: block;
+  height: 100%;
+  min-width: 8px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--brand), #45d49b);
+  transition: width 0.6s var(--ease-out);
+}
+
+.safety-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.safety-item {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 10px;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  border: 1px dashed rgba(217, 140, 0, 0.35);
+  background: rgba(253, 243, 226, 0.55);
+}
+
+.safety-item.done {
+  border-style: solid;
+  border-color: rgba(10, 157, 114, 0.24);
+  background: rgba(232, 245, 239, 0.68);
+}
+
+.safety-check {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #fff;
+  background: var(--warning);
+  box-shadow: 0 6px 14px rgba(217, 140, 0, 0.2);
+}
+
+.safety-item.done .safety-check {
+  background: var(--success);
+  box-shadow: 0 6px 14px rgba(10, 157, 114, 0.2);
+}
+
+.safety-item strong {
+  color: var(--ink);
+}
+
+.safety-item p {
+  margin: 2px 0 0;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+/* ===== 孩子成长摘要 ===== */
+.growth-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.growth-card {
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.8), var(--card-2));
+  box-shadow: var(--shadow-xs);
+}
+
+.growth-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.growth-head h3,
+.growth-head p {
+  margin: 0;
+}
+
+.growth-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.growth-stats span {
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  border: 1px solid var(--line-soft);
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.growth-stats strong {
+  display: block;
+  color: var(--brand-dark);
+  font-size: 20px;
+  line-height: 1.15;
+}
+
+.growth-note {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--brand-soft);
+  border: 1px solid rgba(10, 157, 114, 0.18);
+}
+
+.growth-note strong {
+  color: var(--brand-dark);
+}
+
+.growth-note p {
+  margin: 4px 0 0;
+  color: var(--ink-2);
+}
+
 /* ===== 头像 ===== */
 .avatar {
   width: 44px;
@@ -3523,6 +3675,11 @@ html::before {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .safety-list,
+  .growth-grid {
+    grid-template-columns: 1fr;
+  }
+
   .thread-layout {
     grid-template-columns: 1fr;
     height: auto;
@@ -3555,6 +3712,9 @@ html::before {
 :root[data-theme="dark"] .status-pill.offline { background: rgba(148, 163, 184, 0.22); color: #cbd5e1; }
 :root[data-theme="dark"] .avatar { border-color: var(--card-2); }
 :root[data-theme="dark"] .activity-item { background: rgba(26, 34, 31, 0.72); }
+:root[data-theme="dark"] .safety-item { background: rgba(58, 44, 20, 0.32); }
+:root[data-theme="dark"] .safety-item.done { background: rgba(26, 58, 46, 0.45); }
+:root[data-theme="dark"] .growth-card { background: linear-gradient(145deg, rgba(26, 34, 31, 0.82), var(--card-2)); }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .status-pill.online { background: rgba(34, 197, 94, 0.18); color: #4ade80; }
@@ -3562,4 +3722,7 @@ html::before {
   :root:not([data-theme="light"]) .status-pill.offline { background: rgba(148, 163, 184, 0.22); color: #cbd5e1; }
   :root:not([data-theme="light"]) .avatar { border-color: var(--card-2); }
   :root:not([data-theme="light"]) .activity-item { background: rgba(26, 34, 31, 0.72); }
+  :root:not([data-theme="light"]) .safety-item { background: rgba(58, 44, 20, 0.32); }
+  :root:not([data-theme="light"]) .safety-item.done { background: rgba(26, 58, 46, 0.45); }
+  :root:not([data-theme="light"]) .growth-card { background: linear-gradient(145deg, rgba(26, 34, 31, 0.82), var(--card-2)); }
 }

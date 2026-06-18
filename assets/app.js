@@ -611,6 +611,117 @@ function renderActivityPanel() {
   `;
 }
 
+function safetyChecklist() {
+  const hasChild = state.children.length > 0;
+  const hasOpenRequest = state.requests.some(request => request.status === "open");
+  const hasOrder = state.orders.length > 0;
+  const hasMessages = state.messages.length > 0;
+  const hasReport = state.orders.some(order => order.report?.activities);
+  const providerVerified = Boolean(state.provider?.verified);
+  if (state.user?.role === "provider") {
+    return [
+      { title: "主页资料完整", text: "服务距离、时薪、技能标签和简介会影响家长选择。", done: Boolean(state.provider?.bio && state.provider?.skills?.length) },
+      { title: "认证状态明确", text: "认证后会在列表和订单流程中展示可信状态。", done: providerVerified },
+      { title: "接单前沟通", text: "确认地点、接送规则、孩子性格和紧急联系人。", done: hasMessages },
+      { title: "陪伴后留痕", text: "完成订单后填写活动、情绪、作业和建议，便于家长复盘。", done: hasReport }
+    ];
+  }
+  return [
+    { title: "孩子档案已建立", text: "记录年龄、兴趣、注意事项，方便陪伴者提前了解孩子。", done: hasChild },
+    { title: "需求说明清晰", text: "地点、时间、预算、服务类型和补充说明越完整，匹配越准确。", done: hasOpenRequest || hasOrder },
+    { title: "选择认证陪伴者", text: "优先选择已认证、评分稳定、技能匹配的陪伴者。", done: state.orders.some(order => state.providers.find(provider => provider.id === order.providerId)?.verified) },
+    { title: "订单内沟通留痕", text: "关键约定建议通过消息页确认，方便后续追踪。", done: hasMessages }
+  ];
+}
+
+function renderSafetyPanel() {
+  const items = safetyChecklist();
+  const doneCount = items.filter(item => item.done).length;
+  const score = Math.round((doneCount / items.length) * 100);
+  return `
+    <section class="panel safety-panel">
+      <div class="panel-head">
+        <div>
+          <h2>安全陪伴清单</h2>
+          <p>把服务前、中、后的关键保障显性化，降低沟通遗漏。</p>
+        </div>
+        <span class="safety-score">${score}% 完成</span>
+      </div>
+      <div class="safety-progress" aria-label="安全清单完成度 ${score}%"><span style="width:${score}%"></span></div>
+      <div class="safety-list">
+        ${items.map(item => `
+          <article class="safety-item ${item.done ? "done" : ""}">
+            <span class="safety-check">${item.done ? "✓" : "!"}</span>
+            <div>
+              <strong>${escapeHtml(item.title)}</strong>
+              <p>${escapeHtml(item.text)}</p>
+            </div>
+          </article>
+        `).join("")}
+      </div>
+    </section>
+  `;
+}
+
+function childGrowthSummaries() {
+  return state.children.map(child => {
+    const orders = state.orders.filter(order => order.childName === child.name);
+    const reports = orders.filter(order => order.report?.activities);
+    const reviews = orders.filter(order => order.review);
+    const latestReport = reports[reports.length - 1]?.report;
+    const serviceTypes = [...new Set(orders.map(order => order.service).filter(Boolean))].slice(0, 3);
+    return {
+      child,
+      orders,
+      reports,
+      reviews,
+      latestReport,
+      serviceTypes
+    };
+  });
+}
+
+function renderGrowthPanel() {
+  if (state.user?.role !== "parent") return "";
+  const summaries = childGrowthSummaries();
+  return `
+    <section class="panel growth-panel">
+      <div class="panel-head">
+        <div>
+          <h2>孩子成长摘要</h2>
+          <p>把陪伴记录、服务类型和评价沉淀成可回看的成长线索。</p>
+        </div>
+        <button class="ghost-btn" data-view="orders">查看陪伴记录</button>
+      </div>
+      ${summaries.length ? `
+        <div class="growth-grid">
+          ${summaries.map(item => `
+            <article class="growth-card">
+              <div class="growth-head">
+                ${avatarFor(item.child.name)}
+                <div>
+                  <h3>${escapeHtml(item.child.name)} · ${escapeHtml(item.child.age)}岁</h3>
+                  <p class="muted">${escapeHtml((item.child.interests || []).join("、") || "暂无兴趣标签")}</p>
+                </div>
+              </div>
+              <div class="growth-stats">
+                <span><strong>${item.orders.length}</strong> 次陪伴</span>
+                <span><strong>${item.reports.length}</strong> 份记录</span>
+                <span><strong>${item.reviews.length}</strong> 条评价</span>
+              </div>
+              ${item.serviceTypes.length ? tagRow(item.serviceTypes) : `<p class="muted">暂无服务类型沉淀</p>`}
+              <div class="growth-note">
+                <strong>最近观察</strong>
+                <p>${escapeHtml(item.latestReport?.suggestion || item.latestReport?.mood || item.child.notes || "完成一次订单并保存陪伴记录后，这里会展示最近观察。")}</p>
+              </div>
+            </article>
+          `).join("")}
+        </div>
+      ` : emptyState("还没有成长摘要", "先保存孩子档案，后续陪伴记录会在这里汇总。")}
+    </section>
+  `;
+}
+
 function renderDashboard() {
   const root = $("#dashboardView");
   if (!state.user) {
@@ -622,6 +733,8 @@ function renderDashboard() {
     root.innerHTML = `
       ${renderQualityPanel()}
       ${renderActivityPanel()}
+      ${renderSafetyPanel()}
+      ${renderGrowthPanel()}
       ${renderChildrenPanel()}
       <section class="panel" id="createRequestPanel">
         <div class="panel-head">
@@ -667,6 +780,7 @@ function renderDashboard() {
     root.innerHTML = `
       ${renderQualityPanel()}
       ${renderActivityPanel()}
+      ${renderSafetyPanel()}
       <section class="panel">
         <div class="panel-head">
           <div><h2>陪伴者主页</h2><p>完善资料后，家长更容易选择你。</p></div>
