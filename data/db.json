@@ -36,7 +36,8 @@
       ],
       "bio": "30年小学教学经验，擅长低年级阅读启蒙和习惯培养。",
       "verified": true,
-      "createdAt": "2026-06-18T08:49:42.001Z"
+      "createdAt": "2026-06-18T08:49:42.001Z",
+      "verificationStatus": "approved"
     },
     {
       "id": "provider_chen",
@@ -54,7 +55,8 @@
       ],
       "bio": "学前教育专业，下午没课时间稳定，喜欢带孩子做手工和户外游戏。",
       "verified": true,
-      "createdAt": "2026-06-18T08:49:42.001Z"
+      "createdAt": "2026-06-18T08:49:42.001Z",
+      "verificationStatus": "approved"
     }
   ],
   "requests": [
@@ -76,5 +78,21 @@
   ],
   "orders": [],
   "messages": [],
-  "sessions": []
+  "sessions": [],
+  "children": [
+    {
+      "id": "child_demo",
+      "parentId": "u_parent_demo",
+      "name": "小雨",
+      "age": 7,
+      "gender": "女",
+      "interests": [
+        "阅读",
+        "画画"
+      ],
+      "notes": "慢热，熟悉后很愿意表达。放学后需要先吃点东西再写作业。",
+      "createdAt": "2026-06-18T08:54:36.343Z"
+    }
+  ],
+  "reviews": []
 }

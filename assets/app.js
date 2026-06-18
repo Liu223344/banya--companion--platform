@@ -7,8 +7,10 @@ let state = {
   view: "dashboard",
   providers: [],
   requests: [],
+  children: [],
   orders: [],
   messages: [],
+  reviews: [],
   authMode: "login",
   apiOnline: true
 };
@@ -72,8 +74,10 @@ async function loadBootstrap() {
     state.provider = data.provider || null;
     state.providers = data.providers || [];
     state.requests = data.requests || [];
+    state.children = data.children || [];
     state.orders = data.orders || [];
     state.messages = data.messages || [];
+    state.reviews = data.reviews || [];
     if (state.user) state.role = state.user.role;
   } catch {
     state.apiOnline = false;
@@ -99,6 +103,38 @@ function renderStats() {
   $("#phoneRecommend").textContent = latest
     ? `最新需求：${latest.area}，${latest.time}，需要${latest.service}。`
     : "暂无待匹配需求，可以先发布一个陪伴需求。";
+}
+
+function renderChildrenPanel() {
+  return `
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>孩子档案</h2>
+          <p>先建立孩子档案，后续需求、陪伴记录和成长反馈都可以围绕孩子沉淀。</p>
+        </div>
+      </div>
+      <form id="childForm" class="form-grid">
+        <div class="field"><label>孩子昵称</label><input name="name" placeholder="例如：小雨" required></div>
+        <div class="field"><label>年龄</label><input name="age" type="number" min="3" max="14" required></div>
+        <div class="field"><label>性别</label><input name="gender" placeholder="可不填"></div>
+        <div class="field"><label>兴趣标签</label><input name="interests" placeholder="阅读，画画，足球"></div>
+        <div class="field full"><label>注意事项</label><textarea name="notes" placeholder="性格、过敏、作息、情绪特点等"></textarea></div>
+        <div class="field full"><button class="primary-btn" type="submit">保存孩子档案</button></div>
+      </form>
+      <div class="divider"></div>
+      ${state.children.length ? `<div class="grid cols-3">
+        ${state.children.map(child => `
+          <article class="item-card">
+            <h3>${escapeHtml(child.name)} · ${escapeHtml(child.age)}岁</h3>
+            <p class="muted">${escapeHtml(child.gender || "未填写性别")}</p>
+            ${tagRow(child.interests)}
+            <p>${escapeHtml(child.notes || "暂无注意事项")}</p>
+          </article>
+        `).join("")}
+      </div>` : `<div class="empty">还没有孩子档案。</div>`}
+    </section>
+  `;
 }
 
 function renderAuth() {
@@ -223,6 +259,7 @@ function renderDashboard() {
   if (state.user.role === "parent") {
     const openRequests = state.requests.filter(item => item.status === "open");
     root.innerHTML = `
+      ${renderChildrenPanel()}
       <section class="panel" id="createRequestPanel">
         <div class="panel-head">
           <div>
@@ -232,7 +269,13 @@ function renderDashboard() {
           <button class="ghost-btn" data-action="fill-demo-request">填入示例</button>
         </div>
         <form id="requestForm" class="form-grid">
-          <div class="field"><label>孩子昵称</label><input name="childName" required></div>
+          <div class="field">
+            <label>孩子昵称</label>
+            <input name="childName" list="childNameList" required>
+            <datalist id="childNameList">
+              ${state.children.map(child => `<option value="${escapeHtml(child.name)}"></option>`).join("")}
+            </datalist>
+          </div>
           <div class="field"><label>孩子年龄</label><input name="age" type="number" min="3" max="14" required></div>
           <div class="field"><label>服务地点</label><input name="area" value="${escapeHtml(state.user.area || "")}" required></div>
           <div class="field"><label>服务日期</label><input name="date" placeholder="今天 / 周五 / 2026-06-20" required></div>
@@ -262,7 +305,7 @@ function renderDashboard() {
       <section class="panel">
         <div class="panel-head">
           <div><h2>陪伴者主页</h2><p>完善资料后，家长更容易选择你。</p></div>
-          <span class="status ${state.provider?.verified ? "open" : "matched"}">${state.provider?.verified ? "已认证" : "待认证"}</span>
+          <span class="status ${state.provider?.verified ? "open" : "matched"}">${state.provider?.verified ? "已认证" : state.provider?.verificationStatus === "pending" ? "认证审核中" : "待认证"}</span>
         </div>
         <form id="providerForm" class="form-grid">
           <div class="field"><label>姓名/昵称</label><input name="name" value="${escapeHtml(state.provider?.name || state.user.name)}" required></div>
@@ -275,6 +318,18 @@ function renderDashboard() {
             <button class="primary-btn" type="submit">保存主页</button>
             <button class="ghost-btn" type="button" data-action="verify-provider">模拟完成认证</button>
           </div>
+        </form>
+      </section>
+      <section class="panel">
+        <div class="panel-head">
+          <div><h2>认证申请</h2><p>真实上线时这里会接入实名、人脸、无犯罪记录和资质材料审核。当前先做流程闭环。</p></div>
+        </div>
+        <form id="verificationForm" class="form-grid">
+          <div class="field"><label>真实姓名</label><input name="realName" value="${escapeHtml(state.provider?.name || state.user.name)}" required></div>
+          <div class="field"><label>资质类型</label><input name="credentialType" placeholder="教师资格证 / 学生证 / 培训证明" required></div>
+          <div class="field"><label>证件编号</label><input name="credentialNo" placeholder="仅演示，会自动脱敏" required></div>
+          <div class="field full"><label>陪伴/教育经历</label><textarea name="experience" required></textarea></div>
+          <div class="field full"><button class="primary-btn" type="submit">提交认证申请</button></div>
         </form>
       </section>
       <section class="panel">
@@ -347,12 +402,24 @@ function renderProviders() {
             </div>
             ${tagRow(provider.skills)}
             <p>${escapeHtml(provider.bio)}</p>
-            <p class="muted">评分：${provider.rating || "暂无"}｜服务：${provider.orders || 0} 单｜${provider.price || 0} 元/小时</p>
+            <p class="muted">评分：${provider.rating || "暂无"}｜评价：${state.reviews.filter(review => review.providerId === provider.id).length} 条｜服务：${provider.orders || 0} 单｜${provider.price || 0} 元/小时</p>
+            ${renderProviderReviews(provider.id)}
           </article>
         `).join("")}
       </div>
     </section>
   `;
+}
+
+function renderProviderReviews(providerId) {
+  const reviews = state.reviews.filter(review => review.providerId === providerId).slice(0, 2);
+  if (!reviews.length) return "";
+  return `<div class="review-list">${reviews.map(review => `
+    <div class="review-item">
+      <strong>${"★".repeat(Number(review.rating || 0))}${"☆".repeat(5 - Number(review.rating || 0))}</strong>
+      <p>${escapeHtml(review.text || "家长未填写文字评价")}</p>
+    </div>
+  `).join("")}</div>`;
 }
 
 function renderOrders() {
@@ -374,6 +441,37 @@ function renderOrderCard(order) {
       <p><strong>孩子：</strong>${escapeHtml(order.childName)}　<strong>陪伴者：</strong>${escapeHtml(order.providerName)}</p>
       <p class="muted">参考价格：${escapeHtml(order.price)} 元/小时</p>
       ${order.feedback ? `<p><strong>陪伴反馈：</strong>${escapeHtml(order.feedback)}</p>` : ""}
+      ${order.report ? `
+        <div class="mini-card">
+          <strong>陪伴记录</strong>
+          <p><b>活动：</b>${escapeHtml(order.report.activities)}</p>
+          <p><b>情绪：</b>${escapeHtml(order.report.mood || "未填写")}</p>
+          <p><b>作业：</b>${escapeHtml(order.report.homework || "未填写")}</p>
+          <p><b>建议：</b>${escapeHtml(order.report.suggestion || "未填写")}</p>
+        </div>
+      ` : ""}
+      ${order.review ? `
+        <div class="mini-card">
+          <strong>家长评价：${"★".repeat(Number(order.review.rating || 0))}${"☆".repeat(5 - Number(order.review.rating || 0))}</strong>
+          <p>${escapeHtml(order.review.text || "家长未填写文字评价")}</p>
+        </div>
+      ` : ""}
+      ${state.user?.role === "provider" && (order.status === "arrived" || order.status === "done") ? `
+        <form class="form-grid compact-form" data-form="report" data-order="${order.id}">
+          <div class="field full"><label>陪伴活动记录</label><textarea name="activities" required>${escapeHtml(order.report?.activities || "")}</textarea></div>
+          <div class="field"><label>孩子情绪</label><input name="mood" value="${escapeHtml(order.report?.mood || "")}"></div>
+          <div class="field"><label>作业/任务情况</label><input name="homework" value="${escapeHtml(order.report?.homework || "")}"></div>
+          <div class="field full"><label>给家长的建议</label><textarea name="suggestion">${escapeHtml(order.report?.suggestion || "")}</textarea></div>
+          <div class="field full"><button class="ghost-btn" type="submit">保存陪伴记录</button></div>
+        </form>
+      ` : ""}
+      ${state.user?.role === "parent" && order.status === "done" && !order.review ? `
+        <form class="form-grid compact-form" data-form="review" data-order="${order.id}">
+          <div class="field"><label>评分</label><select name="rating"><option value="5">5分</option><option value="4">4分</option><option value="3">3分</option><option value="2">2分</option><option value="1">1分</option></select></div>
+          <div class="field full"><label>评价内容</label><textarea name="text" placeholder="这次陪伴哪里做得好？有什么建议？"></textarea></div>
+          <div class="field full"><button class="ghost-btn" type="submit">提交评价</button></div>
+        </form>
+      ` : ""}
       <div class="card-actions">
         ${order.status === "accepted" ? `<button class="primary-btn" data-action="order-arrived" data-order="${order.id}">开始陪伴</button>` : ""}
         ${order.status === "arrived" ? `<button class="primary-btn" data-action="order-done" data-order="${order.id}">完成订单</button>` : ""}
@@ -541,6 +639,19 @@ document.addEventListener("submit", async event => {
       toast("需求已发布");
       await refresh();
     }
+    if (event.target.id === "childForm") {
+      const data = Object.fromEntries(new FormData(event.target).entries());
+      await api("/api/children", {
+        method: "POST",
+        body: {
+          ...data,
+          interests: data.interests.split(/[，,]/).map(item => item.trim()).filter(Boolean)
+        }
+      });
+      event.target.reset();
+      toast("孩子档案已保存");
+      await refresh();
+    }
     if (event.target.id === "providerForm") {
       const data = Object.fromEntries(new FormData(event.target).entries());
       await api("/api/providers/me", {
@@ -551,6 +662,25 @@ document.addEventListener("submit", async event => {
         }
       });
       toast("陪伴者主页已保存");
+      await refresh();
+    }
+    if (event.target.id === "verificationForm") {
+      const data = Object.fromEntries(new FormData(event.target).entries());
+      await api("/api/providers/me/verification", { method: "POST", body: data });
+      event.target.reset();
+      toast("认证申请已提交，等待审核");
+      await refresh();
+    }
+    if (event.target.dataset.form === "report") {
+      const data = Object.fromEntries(new FormData(event.target).entries());
+      await api(`/api/orders/${event.target.dataset.order}/report`, { method: "POST", body: data });
+      toast("陪伴记录已保存");
+      await refresh();
+    }
+    if (event.target.dataset.form === "review") {
+      const data = Object.fromEntries(new FormData(event.target).entries());
+      await api(`/api/orders/${event.target.dataset.order}/review`, { method: "POST", body: data });
+      toast("评价已提交");
       await refresh();
     }
     if (event.target.id === "messageForm") {

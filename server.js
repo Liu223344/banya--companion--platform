@@ -118,8 +118,21 @@ function seedDb() {
         createdAt: now()
       }
     ],
+    children: [
+      {
+        id: "child_demo",
+        parentId,
+        name: "小雨",
+        age: 7,
+        gender: "女",
+        interests: ["阅读", "画画"],
+        notes: "慢热，熟悉后很愿意表达。放学后需要先吃点东西再写作业。",
+        createdAt: now()
+      }
+    ],
     orders: [],
     messages: [],
+    reviews: [],
     sessions: []
   };
 }
@@ -131,7 +144,18 @@ function ensureDb() {
 
 function readDb() {
   ensureDb();
-  return JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
+  const db = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
+  db.children ||= [];
+  db.reviews ||= [];
+  db.providers ||= [];
+  db.requests ||= [];
+  db.orders ||= [];
+  db.messages ||= [];
+  db.sessions ||= [];
+  db.providers.forEach(provider => {
+    provider.verificationStatus ||= provider.verified ? "approved" : "none";
+  });
+  return db;
 }
 
 function writeDb(db) {
@@ -310,9 +334,37 @@ async function handleApi(req, res, pathname) {
       provider: user ? providerForUser(db, user.id) || null : null,
       providers: db.providers,
       requests: db.requests,
+      children: user?.role === "parent" ? db.children.filter(child => child.parentId === user.id) : [],
       orders: user ? db.orders.filter(order => user.role === "parent" ? order.parentId === user.id : providerForUser(db, user.id)?.id === order.providerId) : [],
-      messages: user ? db.messages : []
+      messages: user ? db.messages : [],
+      reviews: db.reviews
     });
+  }
+
+  if (method === "GET" && pathname === "/api/children") {
+    const user = requireUser(req, res, db);
+    if (!user || !requireRole(user, "parent", res)) return;
+    return send(res, 200, { children: db.children.filter(child => child.parentId === user.id) });
+  }
+
+  if (method === "POST" && pathname === "/api/children") {
+    const user = requireUser(req, res, db);
+    if (!user || !requireRole(user, "parent", res)) return;
+    const body = await parseBody(req);
+    const child = {
+      id: id("child"),
+      parentId: user.id,
+      name: String(body.name || "").trim(),
+      age: Number(body.age || 0),
+      gender: String(body.gender || "").trim(),
+      interests: Array.isArray(body.interests) ? body.interests : String(body.interests || "").split(/[，,]/).map(item => item.trim()).filter(Boolean),
+      notes: String(body.notes || "").trim(),
+      createdAt: now()
+    };
+    if (!child.name || !child.age) return send(res, 400, { error: "请填写孩子姓名和年龄" });
+    db.children.unshift(child);
+    writeDb(db);
+    return send(res, 201, { child });
   }
 
   if (method === "GET" && pathname === "/api/providers") {
@@ -346,6 +398,25 @@ async function handleApi(req, res, pathname) {
     const provider = providerForUser(db, user.id);
     if (!provider) return send(res, 404, { error: "请先完善陪伴者主页" });
     provider.verified = true;
+    provider.verificationStatus = "approved";
+    writeDb(db);
+    return send(res, 200, { provider });
+  }
+
+  if (method === "POST" && pathname === "/api/providers/me/verification") {
+    const user = requireUser(req, res, db);
+    if (!user || !requireRole(user, "provider", res)) return;
+    const body = await parseBody(req);
+    const provider = providerForUser(db, user.id);
+    if (!provider) return send(res, 404, { error: "请先完善陪伴者主页" });
+    provider.verificationStatus = "pending";
+    provider.verification = {
+      realName: String(body.realName || provider.name).trim(),
+      credentialType: String(body.credentialType || "").trim(),
+      credentialNoMasked: String(body.credentialNo || "").replace(/^(.{2}).*(.{2})$/, "$1****$2"),
+      experience: String(body.experience || "").trim(),
+      submittedAt: now()
+    };
     writeDb(db);
     return send(res, 200, { provider });
   }
@@ -440,6 +511,67 @@ async function handleApi(req, res, pathname) {
     });
     writeDb(db);
     return send(res, 200, { order });
+  }
+
+  const orderReportMatch = pathname.match(/^\/api\/orders\/([^/]+)\/report$/);
+  if (method === "POST" && orderReportMatch) {
+    const user = requireUser(req, res, db);
+    if (!user || !requireRole(user, "provider", res)) return;
+    const provider = providerForUser(db, user.id);
+    const order = db.orders.find(item => item.id === orderReportMatch[1]);
+    if (!order) return send(res, 404, { error: "订单不存在" });
+    if (provider?.id !== order.providerId) return send(res, 403, { error: "不能填写这个订单的陪伴记录" });
+    const body = await parseBody(req);
+    order.report = {
+      activities: String(body.activities || "").trim(),
+      mood: String(body.mood || "").trim(),
+      homework: String(body.homework || "").trim(),
+      suggestion: String(body.suggestion || "").trim(),
+      createdAt: now()
+    };
+    if (!order.report.activities) return send(res, 400, { error: "请填写陪伴活动记录" });
+    db.messages.unshift({
+      id: id("msg"),
+      orderId: order.id,
+      senderId: "system",
+      senderRole: "system",
+      text: `${provider.name} 已提交本次陪伴记录。`,
+      createdAt: now()
+    });
+    writeDb(db);
+    return send(res, 200, { order });
+  }
+
+  const orderReviewMatch = pathname.match(/^\/api\/orders\/([^/]+)\/review$/);
+  if (method === "POST" && orderReviewMatch) {
+    const user = requireUser(req, res, db);
+    if (!user || !requireRole(user, "parent", res)) return;
+    const order = db.orders.find(item => item.id === orderReviewMatch[1]);
+    if (!order) return send(res, 404, { error: "订单不存在" });
+    if (order.parentId !== user.id) return send(res, 403, { error: "不能评价这个订单" });
+    if (order.status !== "done") return send(res, 400, { error: "订单完成后才能评价" });
+    const body = await parseBody(req);
+    const rating = Math.max(1, Math.min(5, Number(body.rating || 5)));
+    const review = {
+      id: id("review"),
+      orderId: order.id,
+      providerId: order.providerId,
+      parentId: user.id,
+      rating,
+      text: String(body.text || "").trim(),
+      createdAt: now()
+    };
+    const existing = db.reviews.find(item => item.orderId === order.id);
+    if (existing) return send(res, 409, { error: "这个订单已经评价过" });
+    db.reviews.unshift(review);
+    order.review = review;
+    const provider = db.providers.find(item => item.id === order.providerId);
+    if (provider) {
+      const providerReviews = db.reviews.filter(item => item.providerId === provider.id);
+      provider.rating = Number((providerReviews.reduce((sum, item) => sum + Number(item.rating || 0), 0) / providerReviews.length).toFixed(1));
+    }
+    writeDb(db);
+    return send(res, 201, { review, order, provider });
   }
 
   if (method === "GET" && pathname === "/api/messages") {
