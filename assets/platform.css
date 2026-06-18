@@ -1939,6 +1939,111 @@ textarea:focus {
   background: #fff;
 }
 
+/* ===== 表单增强提示 ===== */
+.input-hint {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.char-count {
+  text-align: right;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.char-count.warning {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.quick-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.quick-tags .tag {
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--ink-2);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+
+.quick-tags .tag:hover {
+  border-color: var(--brand);
+  color: var(--brand-dark);
+  background: var(--brand-soft);
+}
+
+.range-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.range-hint .range-bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #22c55e, #f59e0b, #ef4444);
+  position: relative;
+}
+
+.range-hint .range-bar::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 2px solid var(--muted-2);
+  transform: translateX(-50%);
+  transition: left 0.2s ease, border-color 0.2s ease;
+}
+
+.field.range-low .range-hint .range-bar::after {
+  left: 16%;
+  border-color: #22c55e;
+}
+
+.field.range-mid .range-hint .range-bar::after {
+  left: 50%;
+  border-color: #f59e0b;
+}
+
+.field.range-high .range-hint .range-bar::after {
+  left: 84%;
+  border-color: #ef4444;
+}
+
+.field.range-low .input-hint,
+.field.range-high .input-hint {
+  color: var(--brand-dark);
+  font-weight: 500;
+}
+
+@media (max-width: 640px) {
+  .quick-tags {
+    gap: 4px;
+  }
+  .quick-tags .tag {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+}
+
 :root[data-theme="dark"] input:focus,
 :root[data-theme="dark"] select:focus,
 :root[data-theme="dark"] textarea:focus {

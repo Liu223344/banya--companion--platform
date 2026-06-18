@@ -343,6 +343,19 @@ function statusLabel(status) {
   }[status] || status;
 }
 
+// 区域输入联想：从已有需求、订单、用户和陪伴者区域聚合
+function areaSuggestions() {
+  const areas = new Set();
+  state.requests.forEach(r => r.area && areas.add(r.area));
+  state.orders.forEach(o => o.area && areas.add(o.area));
+  state.providers.forEach(p => p.area && areas.add(p.area));
+  state.children.forEach(c => c.area && areas.add(c.area));
+  if (state.user?.area) areas.add(state.user.area);
+  const defaults = ["绿芽小区", "阳光花园", "实验二小门口", "幸福里", "望京soho"];
+  defaults.forEach(a => areas.add(a));
+  return Array.from(areas).slice(0, 20).map(a => `<option value="${escapeHtml(a)}"></option>`).join("");
+}
+
 function showGlobalLoader() {
   $("#globalLoader")?.classList.add("show");
 }
@@ -1109,15 +1122,28 @@ function renderDashboard() {
         <form id="requestForm" class="form-grid">
           <div class="field">
             <label>孩子昵称</label>
-            <input name="childName" list="childNameList" required>
+            <input name="childName" list="childNameList" placeholder="例如：小雨" required>
             <datalist id="childNameList">
               ${state.children.map(child => `<option value="${escapeHtml(child.name)}"></option>`).join("")}
             </datalist>
+            <small class="input-hint">从已有孩子档案中选择，或输入新昵称</small>
           </div>
-          <div class="field"><label>孩子年龄</label><input name="age" type="number" min="3" max="14" required></div>
-          <div class="field"><label>服务地点</label><input name="area" value="${escapeHtml(state.user.area || "")}" required></div>
-          <div class="field"><label>服务日期</label><input name="date" placeholder="今天 / 周五 / 2026-06-20" required></div>
-          <div class="field"><label>服务时间</label><input name="time" placeholder="15:40-18:30" required></div>
+          <div class="field"><label>孩子年龄</label><input name="age" type="number" min="3" max="14" required><small class="input-hint">3-14 岁，系统会根据年龄推荐陪伴类型</small></div>
+          <div class="field">
+            <label>服务地点</label>
+            <input name="area" value="${escapeHtml(state.user.area || "")}" list="areaList" required>
+            <datalist id="areaList">${areaSuggestions()}</datalist>
+            <small class="input-hint">常用区域：绿芽小区、阳光花园、实验二小门口</small>
+          </div>
+          <div class="field"><label>服务日期</label><input name="date" placeholder="今天 / 周五 / 2026-06-20" required><small class="input-hint">支持自然语言，如“今天”“明天”“下周一”</small></div>
+          <div class="field"><label>服务时间</label><input name="time" placeholder="15:40-18:30" required>
+            <div class="quick-tags">
+              <button type="button" class="tag" data-action="fill-time" data-value="15:40-18:30">放学 15:40-18:30</button>
+              <button type="button" class="tag" data-action="fill-time" data-value="09:00-12:00">上午 09:00-12:00</button>
+              <button type="button" class="tag" data-action="fill-time" data-value="14:00-17:00">下午 14:00-17:00</button>
+              <button type="button" class="tag" data-action="fill-time" data-value="19:00-21:00">晚间 19:00-21:00</button>
+            </div>
+          </div>
           <div class="field">
             <label>陪伴类型</label>
             <select name="service">
@@ -1128,8 +1154,17 @@ function renderDashboard() {
               <option>临时紧急托底</option>
             </select>
           </div>
-          <div class="field"><label>预算/小时</label><input name="budget" type="number" min="1" value="80" required></div>
-          <div class="field full"><label>补充说明</label><textarea name="note" required></textarea></div>
+          <div class="field">
+            <label>预算/小时</label>
+            <input name="budget" type="number" min="1" value="80" required>
+            <small class="input-hint">周边均价 60-120 元/小时</small>
+            <div class="range-hint"><span>偏低</span><span class="range-bar"></span><span>偏高</span></div>
+          </div>
+          <div class="field full">
+            <label>补充说明</label>
+            <textarea name="note" required maxlength="300" data-count="noteCount" placeholder="性格、学习习惯、接送细节、家长特殊要求等"></textarea>
+            <small class="char-count"><span id="noteCount">0</span>/300</small>
+          </div>
           <div class="field full"><button class="primary-btn" type="submit">发布需求</button></div>
         </form>
       </section>
@@ -2020,6 +2055,13 @@ async function handleAction(actionBtn) {
     state.providerSearch = "";
     render();
   }
+  if (action === "fill-time") {
+    const input = document.querySelector("#requestForm input[name='time']");
+    if (input) {
+      input.value = actionBtn.dataset.value || "";
+      input.dispatchEvent(new Event("input"));
+    }
+  }
   if (action === "retry-connection") {
     toast("正在尝试重新连接...");
     await refresh();
@@ -2221,6 +2263,24 @@ document.addEventListener("input", event => {
   if (event.target.id === "providerSearchInput") {
     state.providerSearch = event.target.value;
     render();
+    return;
+  }
+  // 字数统计
+  const counterId = event.target.dataset.count;
+  if (counterId) {
+    const counter = $(`#${counterId}`);
+    if (counter) counter.textContent = String(event.target.value.length);
+  }
+  // 价格/预算范围提示
+  if (event.target.name === "budget" || event.target.name === "price") {
+    const value = Number(event.target.value);
+    const field = event.target.closest(".field");
+    if (field) {
+      field.classList.remove("range-low", "range-mid", "range-high");
+      if (value < 60) field.classList.add("range-low");
+      else if (value > 120) field.classList.add("range-high");
+      else field.classList.add("range-mid");
+    }
   }
 });
 
